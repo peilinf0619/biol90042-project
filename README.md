@@ -20,9 +20,10 @@ approaches to analyse biological datasets.
 Our project includes the following analyses:
 
 1. Population Genetics
-2. Drug Screening
-3. RNA Sequencing
-4. Other analyses and collaborative tasks
+2. RNA Sequencing
+3. Drug Screening
+4. Clinical Trial
+5. Other analyses and collaborative tasks
 
 ## Repository Structure
 
