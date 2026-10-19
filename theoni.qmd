@@ -1,0 +1,267 @@
+---
+title: "RNA_Seq"
+format: html
+editor: visual
+---
+
+## RNA-seq of patient iPSC-derived neurons
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Question #1
+
+Which genes are differentially expressed between PD cases and healthy controls? Please also visualise your DE results with appropriate plot(s).
+
+```{r}
+Which gene ontology families do the DE genes belong to?
+  
+  Is the clustering of samples by gene expression consistent with 
+their disease status as cases and controls?
+  
+  # load the packages we need
+  library(tidyverse)
+library(edgeR)
+library(limma)
+library(pheatmap)
+library(ggrepel)
+
+#Filtering lowly expressed genes
+# aims to keep genes with a count of 10 or more in at least as many samples as the smallest experimental group.
+#Filtering is done on the ‘counts per million’ (CPM), which represents how many counts you would have for a gene if your library size was one million
+keep <- filterByExpr(dge)
+table(keep)
+
+# see more explanation of square bracket subsetting
+# in the note below, but it's not that important unless
+# you do a lot of RNA-seq
+dge <- dge[keep, , keep.lib.sizes = FALSE]
+
+# check the dimensions of the count matrix to see they
+# have reduced
+dim(dge$counts)
+
+#Normalisation
+#adjusting the data to reduce or eliminate systematic bias, so that samples and experimental groups can be meaningfully compared. In RNA-seq, this mainly means accounting for differences in sequencing depth (library size, using CPM) and RNA composition between samples (using TMM normalisation)
+
+dge <- normLibSizes(dge, method = "TMM")
+dge$samples #Lookinh at norm factors
+
+plotMDS(dge, labels = dge$samples$group)
+#This shows us that the phenotype groups tend to cluster together, meaning that the gene expression profiles are similar for samples within a phenotype group.
+
+
+#To identify differentially expressed genes from our normalised gene expression data, we will use the limma package to fit linear models to the genes, with the help of voom to transform our data to fit the statisical assumptions of linear models
+
+#To fit linear models in the limma-voom framework we need two objects in addition to our data:
+#A design matrix, representing the covariates.
+#A contrast matrix, representing the specific comparison we wish to make.
+
+design <- model.matrix(~ 0 + group, data = dge$samples)
+design
+#Covariate = group (control vs case)
+
+# rename the columns of the design matrix to be just 'Basal' instead of 'groupBasal', etc
+colnames(design) <- c("Control", "Case")
+
+# make the contrast matrix
+contr_matrix <- makeContrasts(
+  # our  pairwise comparisons
+  ControlvsCase = "Control - Case",
+  levels = design)
+#the contrast Basal - LP will give a positive log-fold-change 
+#for genes that are up-regulated in the Basal group compared to the LP group. 
+
+# limma fits linear models, which assume that the underlying data is roughly normally distributed, but raw RNA-seq counts don’t look anything like that! They’re highly skewed, and their spread (variance) grows along with their size (mean), so lowly expressed genes are proportionally far noisier than highly expressed ones. Log-transforming the counts gets us to something close enough to normal for a linear model to work well, so before fitting anything, the voom() function of limma converts our raw counts to log-cpm values, using the library sizes and normalisation factors we calculated during the filtering and normalisation ste
+
+#voom() also estimates that mean-variance relationship directly from the data, and turns it into a ‘precision weight’ for every individual observation. These weights then get fed into the linear model itself, so that noisier, lowly expressed genes have less influence than more reliable, highly expressed ones, which is especially important when working with small sample sizes, like we are today.
+#The voom() function takes our DGEList object and design matrix as arguments, and optionally produces a plot of this mean-variance relationship (turn this on with the plot = TRUE argumen
+
+v <- voom(dge, design, plot = TRUE)      
+
+#The output of voom() (saved in the variable v) is an EList object which contains the following elements:
+
+genes: a data frame of gene annotation data.
+targets: data frame of sample data.
+E: numeric matrix of normalised log-cpm values.
+weights: numeric matrix of precision weights.
+design: the design matrix.
+The voom plot shows the mean-variance relationship: the x-axis is the average log2 expression of each gene, and the y-axis is the square root of the residual standard deviation of each gene.
+
+# fit linear model on voom output
+vfit <- lmFit(v)
+
+# check coefficients
+head(vfit$coefficients)
+
+vfit <- contrasts.fit(vfit, contrasts = contr_matrix)
+head(vfit$coefficients)
+
+efit <- eBayes(vfit)
+efit
+
+dt <- decideTests(efit)
+dt
+summary(dt)
+
+top <- topTable(efit, coef = "ControlvsCase", n = Inf)
+
+# to make the dataframe print nicer, let's convert it to a tibble
+top_tibble <- as_tibble(top)
+top_tibble
+
+# MA plot for Basal vs LP
+plotMA(efit, coef = 1, status = dt[, "ControlvsCase"])
+
+ma_plot_data <- tibble(
+  logFC = efit$coefficients[, "ControlvsCase"],
+  AvgExpr = efit$Amean,
+  status = factor(as.numeric(dt[, "ControlvsCase"])),
+  gene = efit$genes$SYMBOL,
+  p_value = efit$p.value[, "ControlvsCase"]
+)
+
+ma_plot_data %>%
+  ggplot(aes(x = AvgExpr, y = logFC, col = status)) +
+  geom_point()
+
+ma_plot_data_fct <- ma_plot_data %>%
+  mutate(
+    # replace status with a new factor
+    status = factor(
+      status,
+      # levels (order is not DE, down, up)
+      levels = c(0, -1, 1),
+      # labels for the numbers so they are readble
+      labels = c("Not DE", "Down", "Up")
+    )
+  )
+
+# find the top 30 DE genes for each contrast
+top_genes <- bind_rows(
+  topTable(efit, coef = "ControlvsCase", n = Inf)
+  %>%
+    select(ENTREZID, SYMBOL, TXCHROM) %>%
+    # remove duplicates
+    distinct()
+  
+  # filter the count matrix to find just those genes
+  top_gene_expr <- cpm(dge, log = TRUE)[as.character(top_de_genes$ENTREZID), ]
+  rownames(top_gene_expr) <- top_genes$SYMBOL
+  
+  # find the top 15 most significant genes to label
+  top_de_genes <- ma_plot_data_fct %>%
+    slice_min(n = 15, p_value)
+  
+  # a named vector to colour the points by
+  scale_cols <- c(
+    "Not DE" = "black",
+    "Down" = "#1a0099",
+    "Up" = "#990000"
+  )
+  
+  
+  
+  
+  
+  
+  
+  
+  ---------------------------------------------------------------------------------
+    ---------------------------------------------------------------------------------
+    ---------------------------------------------------------------------------------
+    
+    
+    library(tidyverse)
+  library(edgeR)
+  library(limma)
+  library(pheatmap)
+  library(ggrepel)
+  
+  load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq_gene_info.Rda")
+  load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq.Rda")
+  
+  keep <- filterByExpr(dge)
+  table(keep)
+  
+  dge <- dge[keep, , keep.lib.sizes = FALSE]
+  
+  dim(dge$counts)
+  
+  dge <- normLibSizes(dge, method = "TMM")
+  dge$samples #Lookinh at norm factors
+  
+  plotMDS(dge, labels = dge$samples$group)
+  
+  design <- model.matrix(~ 0 + group, data = dge$samples)
+  design
+  
+  colnames(design) <- c("Control", "Case")
+  contr_matrix <- makeContrasts(
+    ControlvsCase = "Control - Case",
+    levels = design)
+  
+  v <- voom(dge, design, plot = TRUE)
+  
+  vfit <- lmFit(v)
+  
+  head(vfit$coefficients)
+  
+  vfit <- contrasts.fit(vfit, contrasts = contr_matrix)
+  head(vfit$coefficients)
+  
+  efit <- eBayes(vfit)
+  efit
+  
+  dt <- decideTests(efit)
+  dt
+  summary(dt)
+  
+  top <- topTable(efit, coef = "ControlvsCase", n = Inf)
+  
+  top_tibble <- as_tibble(top)
+  top_tibble
+  
+  plotMA(efit, coef = 1, status = dt[, "ControlvsCase"])
+  
+  ma_plot_data <- tibble(
+    logFC = efit$coefficients[, "ControlvsCase"],
+    AvgExpr = efit$Amean,
+    status = factor(as.numeric(dt[, "ControlvsCase"])),
+    gene = efit$genes$SYMBOL,
+    p_value = efit$p.value[, "ControlvsCase"]
+  )
+  
+  ma_plot_data %>%
+    ggplot(aes(x = AvgExpr, y = logFC, col = status)) +
+    geom_point()
+  
+  ma_plot_data_fct <- ma_plot_data %>%
+    mutate(
+      # replace status with a new factor
+      status = factor(
+        status,
+        # levels (order is not DE, down, up)
+        levels = c(0, -1, 1),
+        # labels for the numbers so they are readble
+        labels = c("Not DE", "Down", "Up")
+      )
+    )
+  
+  # find the top 30 DE genes for each contrast
+  top_genes <- bind_rows(
+    topTable(efit, coef = "ControlvsCase", n = Inf)
+    %>%
+      select(ENTREZID, SYMBOL, TXCHROM) %>%
+      # remove duplicates
+      distinct()
+    
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
