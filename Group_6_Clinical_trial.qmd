@@ -1,0 +1,108 @@
+---
+title: "Final project"
+format: html
+      html:
+    code-overflow: scroll
+editor: visual
+---
+
+## Load packages for this project
+
+```{r}
+install.packages("patchwork")
+library(ggprism)
+library(tidyverse)
+library(cowplot)
+library(patchwork)
+```
+
+## Import clinical data and visualize raw data
+
+Visualize degrees of off vertical center as a function of time of each patient, then map treatment and exercise to colour and shape aesthetics to show level of balance of each patient, drug choice and exercise status. This plot type display how "off center' a patient is through time.
+
+Then filter and make different graphs and put side by side to visualize effects of new and old drug, treatment status and combined effect.
+
+```{r}
+load("Data/gait.Rda")
+
+# Convert this table into a tidy "long" data frame:
+clean_gait_data <- gait_data %>% pivot_longer(cols = 5:last_col(),
+                           names_to = "Time_of_measurement_seconds",
+                           values_to = "Degrees_off_vertical_orientation" )
+
+# Then convert values in the column "Times of measurement" into numeric time.
+clean_gait_data <- clean_gait_data %>% mutate(Time_of_measurement_seconds = sub("_.*", "", Time_of_measurement_seconds))
+
+# Plot everything
+plot_everything <- clean_gait_data %>% 
+  ggplot(aes(Time_of_measurement_seconds, Degrees_off_vertical_orientation, colour = treatment, shape = exercise))+
+  geom_col()+
+  facet_wrap(~donorid)+
+  theme_bw()+
+  theme(axis.text.x = element_blank(),
+        panel.grid.major.x = element_blank()
+  )
+
+plot_everything
+
+# Plot old compound
+plot_old_compound <- clean_gait_data %>% 
+  filter(treatment == "L-DOPA control") %>% 
+  ggplot(aes(Time_of_measurement_seconds, Degrees_off_vertical_orientation, fill = exercise))+
+  geom_col()+
+  facet_wrap(~donorid)+
+  theme_bw()+
+  theme(axis.text.x = element_blank(),
+        panel.grid.major.x = element_blank()
+        )
+
+# Plot new compound
+plot_new_compound <- clean_gait_data %>% 
+  filter(treatment == "New compound") %>% 
+  ggplot(aes(Time_of_measurement_seconds, Degrees_off_vertical_orientation, fill = exercise))+
+  geom_col()+
+  facet_wrap(~donorid)+
+  theme_bw()+
+  theme(axis.text.x = element_blank(),
+        panel.grid.major.x = element_blank()
+  )
+
+
+
+
+# Combined two plots into the same figure
+plot_grid(plot_old_compound, plot_new_compound, 
+          labels = c("L-DOPA", "New compound")
+         )
+
+
+```
+
+## Plot mean of degrees imbalance against treatment and exercise condition
+
+```{r}
+
+
+clean_gait_data %>% 
+  group_by(donorid, treatment, exercise) %>% 
+  summarise(avg_imbalance = mean(sqrt(Degrees_off_vertical_orientation^2))) %>% 
+  ggplot(aes(treatment, avg_imbalance, colour = exercise))+
+  geom_boxplot(width = 0.2, position = position_dodge(width = 0.3), linewidth = 1)+
+  geom_jitter(position = position_dodge(width = 0.3), size = 0.9)+
+  theme_classic(base_size = 16)+
+  scale_colour_discrete(name = "Exercise status",
+                        breaks = c("y", "n"),
+                        labels = c("Yes", "No"))+
+  labs(x = "Treatment",
+       y = "Imbalance (Mean of degrees off vertical centre)")+
+  theme(text = element_text(family = "Helvetica", face = "bold"),
+        axis.line = element_line(linewidth = 1.3),
+        axis.ticks = element_line(linewidth = 1.3),
+        axis.ticks.length = unit(0.1, "inch")
+        )
+
+
+
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
