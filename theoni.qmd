@@ -3,7 +3,7 @@ title: "RNA_Seq"
 format: html
 editor: visual
 ---
-
+swswehwjehkjwhekjqhekjqweqewew
 ## RNA-seq of patient iPSC-derived neurons
 
 Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
@@ -18,7 +18,7 @@ Which gene ontology families do the DE genes belong to?
   Is the clustering of samples by gene expression consistent with 
 their disease status as cases and controls?
   
-  # load the packages we need
+  # load the packages we needhg
   library(tidyverse)
 library(edgeR)
 library(limma)
