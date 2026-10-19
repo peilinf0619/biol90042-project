@@ -1,0 +1,30 @@
+---
+title: "Linking between datasets"
+format: html
+---
+
+## Question 1：Participants shared across all four study arms
+
+```{r}
+# Load the package used for data wrangling.
+library(tidyverse)
+
+# Read the participant-level PRS results from the population genetics section.
+prs_data <- read_csv("Group6_Population_Genetics.csv")
+
+# Extract unique donor IDs for comparison across study arms.
+prs_donors <- prs_data |>
+  select(donorid) |>
+  distinct()
+
+# Display the population genetics donor IDs.
+prs_donors
+```
+
+## Question 2
+
+## Question 3
+
+## Question 4
+
+## Question 5
