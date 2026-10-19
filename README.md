@@ -28,7 +28,9 @@ Our project includes the following analyses:
 
 - `data/` - Datasets used in the analyses
 - `Group6_Population_Genetics.qmd` - Population genetics analysis
+- `Group6_RNA-seq_of_Patient_iPSC-derived_Neurons.qmd` - RNA-seq of patient iPSC-derived neurons analysis
 - `Group6_Drug_Screen.qmd` - Drug screening analysis
+- `Group6_Clinical_Trial.qmd`
 - `Group6_Collaboration_Questions.qmd` - Collaboration questions
 - `Group6_Population_Genetics.csv` - Population genetics CSV file
 - `biol90042-project.Rproj` - RStudio project file
