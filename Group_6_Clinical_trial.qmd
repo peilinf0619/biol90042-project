@@ -4,6 +4,8 @@ format: html
       html:
     code-overflow: scroll
 editor: visual
+execute
+  cache: true
 ---
 
 ## Load packages for this project
@@ -18,12 +20,12 @@ library(patchwork)
 
 ## Import clinical data and visualize raw data
 
-Visualize degrees of off vertical center as a function of time of each patient, then map treatment and exercise to colour and shape aesthetics to show level of balance of each patient, drug choice and exercise status. This plot type display how "off center' a patient is through time.
+Visualize degrees of off vertical center as a function of time of each patient, then map exercise to colour aesthetics to show level of balance of each patient, treatment and exercise status. This plot type display how "off center' each patient is through time.
 
-Then filter and make different graphs and put side by side to visualize effects of new and old drug, treatment status and combined effect.
+The most suitable descriptive statistic to represent how "balanced" a patient is is the mean degrees off vertical orientation.
 
 ```{r}
-load("Data/gait.Rda")
+load("data/gait.Rda")
 
 # Convert this table into a tidy "long" data frame:
 clean_gait_data <- gait_data %>% pivot_longer(cols = 5:last_col(),
@@ -50,10 +52,14 @@ plot_old_compound <- clean_gait_data %>%
   filter(treatment == "L-DOPA control") %>% 
   ggplot(aes(Time_of_measurement_seconds, Degrees_off_vertical_orientation, fill = exercise))+
   geom_col()+
+  guides(fill = "none")+
   facet_wrap(~donorid)+
+  labs(title = "L-DOPA")+
   theme_bw()+
   theme(axis.text.x = element_blank(),
-        panel.grid.major.x = element_blank()
+        panel.grid.major.x = element_blank(),
+        plot.margin = margin(t = 40, r = 60, b = 60, l = 60),
+        plot.title = element_text(hjust = 0.5, vjust = 5)
         )
 
 # Plot new compound
@@ -61,26 +67,33 @@ plot_new_compound <- clean_gait_data %>%
   filter(treatment == "New compound") %>% 
   ggplot(aes(Time_of_measurement_seconds, Degrees_off_vertical_orientation, fill = exercise))+
   geom_col()+
+  labs(y = "")+
   facet_wrap(~donorid)+
   theme_bw()+
+  labs(title = "New compound")+
   theme(axis.text.x = element_blank(),
-        panel.grid.major.x = element_blank()
+        panel.grid.major.x = element_blank(),
+        plot.margin = margin(t = 40, r = 60, b = 60, l = 60),
+        plot.title = element_text(hjust = 0.5, vjust = 5)
   )
 
 
 
 
 # Combined two plots into the same figure
-plot_grid(plot_old_compound, plot_new_compound, 
-          labels = c("L-DOPA", "New compound")
-         )
+plot_grid(plot_old_compound, plot_new_compound)
+          
+         
 
-
+  
 ```
 
 ## Plot mean of degrees imbalance against treatment and exercise condition
 
+Whether or not a patient exercise
+
 ```{r}
+
 
 
 clean_gait_data %>% 
@@ -99,10 +112,51 @@ clean_gait_data %>%
         axis.line = element_line(linewidth = 1.3),
         axis.ticks = element_line(linewidth = 1.3),
         axis.ticks.length = unit(0.1, "inch")
-        )
-
+  )
+  
 
 
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+## Investigate how age affects drug effect, using mean as representative of balance
+
+```{r}
+clean_gait_data %>% 
+  group_by(donorid, treatment, exercise,age) %>% 
+  summarise(avg_imbalance = mean(sqrt(Degrees_off_vertical_orientation^2))) %>% 
+  ggplot(aes(age, avg_imbalance, colour = treatment, shape = exercise))+
+  geom_point()+
+  theme_classic()+
+  theme(text = element_text(family = "Helvetica", face = "bold"),
+        axis.line = element_line(linewidth = 1.3),
+        axis.ticks = element_line(linewidth = 1.3),
+        axis.ticks.length = unit(0.1, "inch")
+  )
+
+```
+
+## Investigate how age affects drug effect, using standard deviation as representative of balance
+
+```{r}
+clean_gait_data %>% 
+  group_by(donorid, treatment, exercise) %>% 
+  summarise(avg_imbalance = sd(Degrees_off_vertical_orientation)) %>% 
+  ggplot(aes(treatment, avg_imbalance, colour = exercise))+
+  geom_boxplot(width = 0.2, position = position_dodge(width = 0.3), linewidth = 1)+
+  geom_jitter(position = position_dodge(width = 0.3), size = 0.9)+
+  theme_bw(base_size = 16)+
+  scale_colour_discrete(name = "Exercise status",
+                        breaks = c("y", "n"),
+                        labels = c("Yes", "No"))+
+  labs(x = "Treatment",
+       y = "Imbalance (Mean of degrees off vertical centre)",
+       title = "Standard deviation")+
+  theme(text = element_text(family = "Helvetica", face = "bold"),
+        axis.line = element_line(linewidth = 1.3),
+        axis.ticks = element_line(linewidth = 1.3),
+        axis.ticks.length = unit(0.1, "inch"),
+        plot.title = element_text(hjust = 0.5)
+        
+  )
+
+```
