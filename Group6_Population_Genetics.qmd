@@ -1,0 +1,214 @@
+---
+title: "Population Genetics"
+author: "Peilin Feng"
+format: html
+execute:
+  echo: true
+  message: false
+---
+
+## Load and check the data
+
+```{r}
+# Load the package used for data wrangling and plotting.
+library(tidyverse)
+
+# Load the population genetics data from the project data folder.
+load("data/prs.Rda")
+
+# Display the two data frames.
+gwas_top_hits
+ca_co_genotypes
+```
+
+```{r}
+# Count the participants in each group. 
+ca_co_genotypes |> 
+  summarise(n = n(), .by = status)
+
+# Count missing values in each data frame
+sum(is.na(gwas_top_hits))
+sum(is.na(ca_co_genotypes))
+
+# Check whether any donor ID appears more than once
+ca_co_genotypes |> 
+  summarise(n = n(), .by = donorid) |> 
+  filter(n>1)
+```
+
+The dataset contained 300 participants, including 150 PD cases and 150 healthy controls, with genotype data for 15 loci. No missing values or duplicate donor IDs were found.
+
+## Q1 Calculate polygenic risk scores (PRS)
+
+PRS was calculated by multiplying the risk-allele dosage at each locus by its corresponding GWAS coefficient summing across the 15 loci.
+
+```{r}
+#Reshape the genotype data from wide to long format using pivot_loger() function 
+# Each row now represents one locus for one participant.
+prs_long <- ca_co_genotypes |> 
+  pivot_longer(
+    cols = starts_with("locus_"),
+    names_to = "locus",
+    values_to = "dosage"
+  )
+
+# Display the reshaped data.
+prs_long
+```
+
+```{r}
+# Match each locus with its GWAS coefficient by locus name.
+prs_long <- prs_long|> 
+  left_join(
+    gwas_top_hits |> select(locus,beta),
+    by = "locus"
+  )
+
+# Check every locus has a matching coefficient
+sum(is.na(prs_long$beta))
+
+
+# Display the data with the added beta column
+prs_long
+```
+
+```{r}
+# Calculate the weighted contribution of each locus
+# Sum the contributions to obtain one PRS per participant
+prs_data <- prs_long |> 
+  mutate(weighted_score = dosage * beta) |> 
+  summarise(
+    PRS = sum(weighted_score),
+    .by = c(donorid, status)
+  )
+
+# Display the participanty level PRS
+prs_data
+```
+
+## Q1: Highest and lowest PRS
+
+```{r}
+# Identify the participant with the highest PRS, including any ties
+prs_data |> 
+  slice_max(PRS, n = 1)
+
+# Identify the participant with the lowest PRS, including any ties
+prs_data |> 
+  slice_min(PRS, n = 1)
+```
+
+The highest PRS was observed in participant d045 (PD case), with a score of 2.552. The lowest PRS was observed in participant d208 (control), with a score of 0.163.
+
+## Q2: Descriptive statistics of PRS
+
+```{r}
+# Calculate summary statistics separately for cases and controls
+prs_summary <- prs_data |> 
+  summarise(
+    n = n(),
+    mean_PRS = mean(PRS),
+    sd_PRS = sd(PRS),
+    median_PRS = median(PRS),
+    min_PRS = min(PRS),
+    max_PRS = max(PRS),
+    .by = status
+    )
+
+# Display the summary statistics
+prs_summary
+```
+
+Cases had a higher mean PRS (1.3534, SD = 0.4114) than control (1.0628, SD = 0.3487). Median PRS was also higher in cases (1.3745) than controls (1.0615). The larger standard deviation in cases indicated slightly greater variability.
+
+## Q2: Distribution of PRS
+
+```{r}
+# Use histograms to examine the shape and location of each distribution
+# Separate the groups into panels for comparison
+ggplot(prs_data,
+       aes(x = PRS, fill = status)) +
+         geom_histogram(bins = 15) +
+         facet_wrap(~status) +
+         labs(
+           title = "Distribution of PRS in cases and controls",
+           x = "Polygenic risk score",
+           y = "Number of participants"
+         ) +
+         theme_classic()
+```
+
+```{r}
+# Use box plots to compare the median, spread and potential outliers
+ggplot(prs_data,
+       aes(x = status, y = PRS, fill = status)) +
+  geom_boxplot() +
+  labs(
+    title = "Comparison of PRS between cases and controls",
+    x = "Disease status",
+    y = "Polygenic risk score"
+  ) + 
+  theme_classic()
+```
+
+The histograms and boxplots showed higher PRS values in cases than controls, with greater spread in cases. However, the distributions overlapped substantially. Potential outliers were present in both groups and were retained because their position alone did not indicate a data error.
+
+## Q3: Check assumptions
+
+```{r}
+# Check normality separately in cases and controls
+# Compare the observed quantiles with the normal reference line
+ggplot(prs_data,
+       aes(sample = PRS)) + 
+  geom_qq() +
+  geom_qq_line() +
+  facet_wrap(~ status) +
+  labs(
+    title = "Q-Q plots of PRS",
+    x = "Theoretical quantiles",
+    y = "Observed PRS quantiles"
+  ) + 
+  theme_classic()
+```
+
+```{r}
+# Test normality in cases
+# pull() extracts the numeric vector required by shapiro.test()
+prs_data |> 
+  filter(status == "case") |> 
+  pull(PRS) |> 
+  shapiro.test()
+
+# Test normality in controls
+prs_data |> 
+  filter(status == "ctrl") |> 
+  pull(PRS) |> 
+  shapiro.test()
+```
+
+The Q-Q plots were approximately linear, with some deviations at the tails. Shapiro-Wilk tests did not reject normality in cases (p = 0.4702) or controls (p = 0.2319).
+
+Each participant contributed one PRS, and no duplicate donor IDs were found. Independence was assumed based on the study design. Unique IDs alone cannot establish independence. Potential outliers identified in the boxplots was retained.
+
+A Welch two sample t-test was selected to compare group means without assuming equal population variances. The null hypothesis that the mean PRS was equal in cases and controls, and the alternative was that the means differed. The significance level was 0.05.
+
+## Q3: Compare mean pRS between cases and controls
+
+```{r}
+# Compare group means using a two-sided Welch two-sample t-test
+# Equal population variances are not assumed
+prs_ttest <- t.test(
+  PRS ~ status,
+  data = prs_data,
+  var.equal = FALSE
+)
+
+# Display the test results
+prs_ttest
+```
+
+The Welch two-sample t-test showed a statistically significant difference in mean PRS between cases and control groups, t(290.21) = 6.5983, p = 1.97 x 10\^-10. Mean PRS was higher in cases (1.3534) than controls (1.0628), with a mean difference of 0.2905 (95% confidence interval: 0.2039 - 0.3772). The null hypothesis of equal group means was rejected.
+
+## Conclusion
+
+In this dataset, PD cases had a higher mean PRS than healthy controls. However, the distributions overlapped substantially, so the score does not clearly distinguish every case from every control. The PRS included only 15 loci and did not capture all genetic or environmental contributions to PD. These results demonstrate an association, not causation, and PRS should not be interpreted as an individual diagnosis or a probability of developing PD.
