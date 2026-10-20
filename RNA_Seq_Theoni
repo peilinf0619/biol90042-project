@@ -1,0 +1,253 @@
+---
+title: "RNA_Seq_TR"
+format: html
+editor: visual
+---
+
+Question #1
+
+Which genes are differentially expressed between PD cases and healthy controls? Please also visualise your DE results with appropriate plot(s).
+
+Loa
+
+{r}
+# load  packages
+library(tidyverse)
+library(edgeR)
+library(limma)
+library(pheatmap)
+library(ggrepel)
+
+#Load data
+load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq.Rda")
+load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq_gene_info.Rda")
+
+Filter out lowly expressed genes
+
+(includes only genes with count => 10 in analysis)
+
+{r}
+keep <- filterByExpr(dge)
+table(keep)
+dge <- dge[keep, , keep.lib.sizes = FALSE]
+dge$samples 
+# check the dimensions of the count matrix to see if  reduced
+dim(dge$counts)
+
+Normalise raw counts
+
+to allow us to compare our samples against one another accounting for differences in:
+
+sequencing depth (library size, using CPM) = counts you would have for a gene if library size = one million
+
+RNA composition between samples (using TMM normalisation)
+
+{r}
+dge <- normLibSizes(dge, method = "TMM")
+#The column below shows normalisation factors
+dge$samples 
+
+Lmma-voom framework
+
+Transforming data to meet linear assumptions so we can Identify differentially expressed genes from normalised data
+
+involves data to be fitted w linear model #Thus data needs to fit the statisical assumptions of linear models
+
+FITTING LIMMA ~
+
+{r}
+#design matrix, representing the covariates.
+#Covariate = group (control vs case)
+design <- model.matrix(~ 0 + group, data = dge$samples)
+colnames(design) <- c("Control", "Case")
+
+# contrast matrix, representing the specific comparison we wish to make
+# our  pairwise comparisons = ctrl - case
+#the contrast ctrl - case will give a positive log-fold-change 
+#for genes that are up-regulated in the ctrl group compared to the case group.
+contr_matrix <- makeContrasts(ControlvsCase = "Control - Case", levels = design)
+
+TRANSFORMING FOR LINEAR ASSUMPTION TRANSFORMING FOR NORMAL DIST ASSUMPTION
+
+{r}
+
+#raw RNA-seq counts are highly skewed, and their spread (variance) grows along with their size (mean), 
+#lowly expressed genes are proportionally far noisier than highly expressed ones
+#Log-transforming the counts gets us to something close enough to normal for a linear model to work well, so before fitting anything, 
+
+#converts our raw counts to log-cpm values,
+  #using the library sizes and normalisation factors we calculated during     the filtering and normalisation steps
+  #Also estimates that mean-variance relationship directly from the data, and turns it into a ‘precision weight’ for every individual observation. Weights then get fed into the linear model itself, so that noisier, lowly expressed genes have less influence than more reliable, highly expressed ones, which is especially important when working with small sample sizes!!
+#The output of voom() (saved in the variable v) is an EList object which contains the following elements:
+  #genes: a data frame of gene annotation data.
+  #targets: data frame of sample data.
+  #E: numeric matrix of normalised log-cpm values.
+  #weights: numeric matrix of precision weights.
+  #design: the design matrix.
+  #Voom plot shows the mean-variance relationship: x-axis is the average log2 expression of each gene, y-axis is the square root of the residual standard deviation of each gene.
+v <- voom(dge, design, plot = TRUE)      
+
+# Finally linear model (on voom output)
+#The resulting object, vfit, is a MArrayLM object. It contains information about our genes (the same data frame as genes from our EList object v above), the design matrix, and a number of statistical outputs.
+
+#Of most interest to us are the coefficients, stored in an element called coefficients. The first rows of this matrix are shown above: each row is a gene, labelled using the EntrezID, and each column gives coefficients for each of our phenotype groups. These coefficients are weighted averages of the log-cpm of each gene in each group.
+#We can then use contrasts.fit() to calculate coefficients for each contrast (or ‘comparison’) we specified in our contr_matrix. The output is also an object of the class MArrayLM (also known as an MArrayLM object). When we inspect the coefficients element now, we can see that each column is a contrast that we specified in our contrast matrix
+vfit <- lmFit(v)
+
+#check coefficients
+head(vfit$coefficients)
+
+vfit <- contrasts.fit(vfit, contrasts = contr_matrix)
+head(vfit$coefficients)
+
+
+Significance testing DGEs
+
+{r}
+#To actually test if the values are significantly different from 0, we use the eBayes() function to compute moderated t-statistics, moderated F-statistics and log-odds of differential expression for each gene, given a fitted linear model. ‘Moderated’ refers to empirical Bayes moderation, which borrows information across genes to obtain more accurate measures of variability for each gene. This also increases our power to detect differentially expressed genes.
+efit <- eBayes(vfit)
+efit
+
+#We can see that the efit object has a lot of information in it. We will need to use other functions and visualisations to help us interpret the results of our statistical tests.
+#First, let’s look at the number of differentially expressed genes using the decideTests() function. The output of this function is a matrix where each column is a contrast (comparison of interest) and each row is a gene. The elements are either:
+  #1: this gene is up-regulated
+  #-1: this gene is down-regulated
+  #0: this gene is not significantly differentially expressed
+#To obtain the total number of differentially expressed genes for each comparison, we can run summary() on dt
+dt <- decideTests(efit)
+dt
+summary(dt)
+
+#The function topTable() can be used to obtain more information on the differentially expressed genes for each contrast.
+#topTable() takes as arguments the output of eBayes() (efit), the contrast name of interest and the number of top differentially expressed genes to output. Note that the contrast name must be given in quotes and must be exactly as written in the contrast matrix contr_matrix:
+top <- topTable(efit, coef = "ControlvsCase", n = Inf)
+
+Join DGEs with entrezID
+
+{r}
+# to make the dataframe print nicer, let's convert it to a tibble
+#Notice how we converted top to a tibble, to make it print more nicely.
+#Along with information about the genes, top_tibble contains the following columns:
+  #logFC: the log2 fold change of the contrast.
+#AveExpr: the average log2 expression of that gene.
+#t: moderated t-statistic.
+#P.Value: p value.
+#adj.P.Val: adjusted p value.
+#B: log-odds that the gene is differentially expressed.
+top_tibble <- as_tibble(top)
+
+# Rename one or multiple columns
+ #gene_names<- entrez_genename_key %>% 
+  #rename(
+     #"genes" = entrezid)
+
+#top_tibble_ID <- left_join(top_tibble, gene_names, by="genes")
+
+
+#new <- efit$genes
+#new2 <- new |> rename(entrezid = genes)
+#new3 <- left_join(new2, entrez_genename_key) 
+
+VISUALING DIFF EXP VISUALING DIFF EXP
+
+#Now that we know which genes are differentially expressed for each of our contrasts, let’s visualise these results. After all, a table of thousands of p values and fold-changes is hard to interpret!
+
+MA Plot
+
+{r}
+
+#MA PLOT
+ma_plot_data <- tibble(
+  logFC = efit$coefficients[, "ControlvsCase"],
+  AvgExpr = efit$Amean,
+  status = factor(as.numeric(dt[, "ControlvsCase"])),
+  gene = new3$gene_name,
+  p_value = efit$p.value[, "ControlvsCase"])
+
+ma_plot_data_fct <- ma_plot_data %>%
+  mutate(
+    status = factor(
+      status,
+      levels = c(0, -1, 1),
+      labels = c("Not DE", "Down", "Up")
+    ))
+
+
+top_de_genes <- ma_plot_data_fct %>%
+  slice_min(n = 15, p_value) |> na.omit()
+
+scale_cols <- c(
+  "Not DE" = "black",
+  "Down" = "#800080",
+  "Up" = "#E30B5C"
+)
+
+#Plotting
+ggplot(ma_plot_data_fct, aes(x = AvgExpr, y = logFC, col = status)) +
+  geom_point(
+    data = ma_plot_data_fct %>% filter(status == "Not DE"),
+    size = 0.1
+  )  +
+  geom_point(data = ma_plot_data_fct %>% filter(status != "Not DE"), size = 3) +
+  geom_label_repel(
+    data = top_de_genes,
+    aes(label = gene, col = NULL, size = 2),
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(values = scale_cols) +
+  theme_classic() +
+  labs(title = "MA plot for Case vs Control")
+
+Volcano Plot
+
+{r}
+ggplot(ma_plot_data_fct, aes(x = logFC, y = -log10(p_value), col = status)) +
+  geom_point(
+    data = ma_plot_data_fct %>% filter(status == "Not DE"),
+    size = 0.1
+  ) +
+  geom_point(data = ma_plot_data_fct %>% filter(status != "Not DE"), size = 1) +
+  geom_label_repel(
+    data = top_de_genes,
+    aes(label = gene, col = NULL),
+    max.overlaps = 20,
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(values = scale_cols) +
+  theme_classic() +
+  labs(title = "Volcano plot for Case vs Control")
+
+Question #2
+
+Which gene ontology families do the DE genes belong to?
+
+{r}
+newgo <- gene_ontology |> rename(entrezid = entrezgene_id)
+newnewgo <- left_join(newgo, entrez_genename_key)
+
+newnewnewgo <- newnewgo |> rename(gene = gene_name)
+
+yay <- left_join(top_de_genes, newnewnewgo)
+yay |> select(c(gene,desc))
+
+
+Question #3
+
+Is the clustering of samples by gene expression consistent with their disease status as cases and controls?
+
+MDS-Clustering
+
+shows us that the phenotype groups tend to cluster together, meaning that the gene expression profiles are similar for samples within a phenotype group.
+
+The distance between each pair of samples in the MDS plot is calculated as the leading fold change, defined as the root-mean-square of the largest 500 log2-fold changes between that pair of samples.
+
+Replicate samples from the same group cluster together in the plot, while samples from different groups form separate clusters.
+
+This indicates that the differences between groups are larger than those within groups, i.e., differential expression is greater than the variance and can be detected.
+
+{r}
+col.cell <- c("purple","orange")[dge$samples$group]
+plotMDS(dge,col=col.cell, labels = dge$samples$group)
+legend("topleft",fill=c("purple","orange"),
+       legend=levels(dge$samples$group))
+
