@@ -192,7 +192,7 @@ Each participant contributed one PRS, and no duplicate donor IDs were found. Ind
 
 A Welch two sample t-test was selected to compare group means without assuming equal population variances. The null hypothesis that the mean PRS was equal in cases and controls, and the alternative was that the means differed. The significance level was 0.05.
 
-## Q3: Compare mean pRS between cases and controls
+## Q3: Compare mean PRS between cases and controls
 
 ```{r}
 # Compare group means using a two-sided Welch two-sample t-test
