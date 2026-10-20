@@ -1,0 +1,249 @@
+---
+title: "RNA-seq analysis"
+format: html
+editor: visual
+---
+
+## Question 1: Differential expression
+
+Which genes are differentially expressed between PD cases and healthy controls? Please also visualise your DE results with appropriate plots.
+
+### Load packages and data
+
+```{r}
+library(tidyverse)
+library(edgeR)
+library(limma)
+library(pheatmap)
+library(ggrepel)
+
+load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq.Rda")
+load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq_gene_info.Rda")
+```
+
+### Filter out lowly expressed genes
+
+This includes only genes with counts of at least 10 in the analysis.
+
+```{r}
+keep <- filterByExpr(dge)
+table(keep)
+dge <- dge[keep, , keep.lib.sizes = FALSE]
+dge$samples
+
+# Check whether the count matrix dimensions have been reduced
+dim(dge$counts)
+```
+
+### Normalise raw counts
+
+Normalisation allows samples to be compared while accounting for differences in sequencing depth and RNA composition:
+
+- **Sequencing depth (library size, using CPM):** counts scaled to the number expected for a library of one million.
+- **RNA composition:** adjusted using TMM normalisation.
+
+```{r}
+dge <- normLibSizes(dge, method = "TMM")
+
+# View the normalisation factors
+dge$samples
+```
+
+### Limma-voom framework
+
+The limma-voom framework transforms the data to better meet the assumptions of a linear model, allowing differential expression to be identified from normalised data.
+
+#### Fit the linear model
+
+The design matrix represents the covariates. Here, the covariate is group (control versus case).
+
+```{r}
+design <- model.matrix(~ 0 + group, data = dge$samples)
+colnames(design) <- c("Control", "Case")
+
+# Compare controls with cases
+# A positive log-fold change indicates higher expression in controls.
+contr_matrix <- makeContrasts(
+  ControlvsCase = "Control - Case",
+  levels = design
+)
+```
+
+#### Transform counts using voom
+
+Raw RNA-seq counts are highly skewed, and their variance increases with their mean. Lowly expressed genes are proportionally noisier than highly expressed genes.
+
+The `voom()` function converts counts to log-CPM values using the library sizes and normalisation factors calculated above. It also estimates the mean-variance relationship and assigns a precision weight to each observation. Noisier observations therefore have less influence on the linear model.
+
+The voom plot shows the mean-variance relationship: the x-axis is average log2 expression and the y-axis is the square root of the residual standard deviation.
+
+```{r}
+v <- voom(dge, design, plot = TRUE)
+```
+
+#### Fit the model and apply contrasts
+
+The fitted model contains coefficients representing weighted average log-CPM expression for each phenotype group. `contrasts.fit()` then calculates the specified comparison between groups.
+
+```{r}
+vfit <- lmFit(v)
+
+# Check coefficients for each group
+head(vfit$coefficients)
+
+vfit <- contrasts.fit(vfit, contrasts = contr_matrix)
+
+# Check coefficients for the contrast
+head(vfit$coefficients)
+```
+
+### Test for differential expression
+
+The `eBayes()` function computes moderated t-statistics, moderated F-statistics, and log-odds of differential expression. Empirical Bayes moderation borrows information across genes to improve estimates of variability.
+
+```{r}
+efit <- eBayes(vfit)
+efit
+
+# Classify genes as upregulated, downregulated, or not significantly differentially expressed
+dt <- decideTests(efit)
+dt
+summary(dt)
+
+# Retrieve the results for the control-versus-case contrast
+top <- topTable(efit, coef = "ControlvsCase", n = Inf)
+```
+
+### Join differential-expression results with Entrez IDs
+
+The `topTable()` output includes the log-fold change, average expression, moderated t-statistic, p-value, adjusted p-value, and log-odds of differential expression.
+
+```{r}
+top_tibble <- as_tibble(top)
+
+
+gene_names <- entrez_genename_key %>%
+rename("genes" = entrezid)
+top_tibble_ID <- left_join(top_tibble, gene_names, by = "genes")
+new <- efit$genes
+new2 <- new |> rename(entrezid = genes)
+new3 <- left_join(new2, entrez_genename_key)
+```
+
+### Visualise differential-expression results
+
+A table of p-values and fold changes can be difficult to interpret, so the results are visualised using an MA plot and a volcano plot.
+
+#### MA plot
+
+```{r}
+ma_plot_data <- tibble(
+  logFC = efit$coefficients[, "ControlvsCase"],
+  AvgExpr = efit$Amean,
+  status = factor(as.numeric(dt[, "ControlvsCase"])),
+  gene = new3$gene_name,
+  p_value = efit$p.value[, "ControlvsCase"]
+)
+
+ma_plot_data_fct <- ma_plot_data %>%
+  mutate(
+    status = factor(
+      status,
+      levels = c(0, -1, 1),
+      labels = c("Not DE", "Down", "Up")
+    )
+  )
+
+top_de_genes <- ma_plot_data_fct %>%
+  slice_min(n = 15, p_value) |>
+  na.omit()
+
+scale_cols <- c(
+  "Not DE" = "black",
+  "Down" = "#800080",
+  "Up" = "#E30B5C"
+)
+
+ggplot(ma_plot_data_fct, aes(x = AvgExpr, y = logFC, col = status)) +
+  geom_point(
+    data = ma_plot_data_fct %>% filter(status == "Not DE"),
+    size = 0.1
+  ) +
+  geom_point(
+    data = ma_plot_data_fct %>% filter(status != "Not DE"),
+    size = 3
+  ) +
+  geom_label_repel(
+    data = top_de_genes,
+    aes(label = gene, col = NULL, size = 2),
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(values = scale_cols) +
+  theme_classic() +
+  labs(title = "MA plot for Case vs Control")
+```
+
+#### Volcano plot
+
+```{r}
+ggplot(ma_plot_data_fct, aes(x = logFC, y = -log10(p_value), col = status)) +
+  geom_point(
+    data = ma_plot_data_fct %>% filter(status == "Not DE"),
+    size = 0.1
+  ) +
+  geom_point(
+    data = ma_plot_data_fct %>% filter(status != "Not DE"),
+    size = 1
+  ) +
+  geom_label_repel(
+    data = top_de_genes,
+    aes(label = gene, col = NULL),
+    max.overlaps = 20,
+    show.legend = FALSE
+  ) +
+  scale_colour_manual(values = scale_cols) +
+  theme_classic() +
+  labs(title = "Volcano plot for Case vs Control")
+```
+
+## Question 2: Gene ontology
+
+Which gene ontology families do the differentially expressed genes belong to?
+
+```{r}
+newgo <- gene_ontology |> rename(entrezid = entrezgene_id)
+newnewgo <- left_join(newgo, entrez_genename_key)
+
+newnewnewgo <- newnewgo |> rename(gene = gene_name)
+
+yay <- left_join(top_de_genes, newnewnewgo)
+yay |> select(c(gene, desc))
+```
+
+## Question 3: Sample clustering
+
+Is the clustering of samples by gene expression consistent with their disease status as cases and controls?
+
+### Multidimensional scaling (MDS) clustering
+
+The MDS plot shows whether phenotype groups tend to cluster together, indicating that samples within a group have similar gene-expression profiles.
+
+The distance between each pair of samples is calculated using the leading fold change, defined as the root-mean-square of the largest 500 log2-fold changes between that pair of samples.
+
+If samples from the same group cluster together and samples from different groups form separate clusters, this suggests that between-group differences are larger than within-group variation.
+
+```{r}
+col.cell <- c("#E30B5C", "#800080")[dge$samples$group]
+
+plotMDS(
+  dge,
+  col = col.cell,
+  labels = dge$samples$group
+)
+
+legend(
+  "topleft",
+  fill = c("#E30B5C", "#800080"),
+  legend = levels(dge$samples$group)
+)
+```
