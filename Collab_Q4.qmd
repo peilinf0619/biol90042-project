@@ -1,0 +1,118 @@
+---
+title: "Collab Q4"
+format: html
+---
+
+## Collaboration Question 4
+
+## Load in data
+
+```{r}
+library(tidyverse)
+
+# Load the cleaned PRS data
+prs_data <- read_csv("Group6_Population_Genetics.csv")
+
+# Check the structure of the cleaned PRS dataset
+glimpse(prs_data)
+
+# View the first few rows
+head(prs_data)
+
+# Load in gait data
+load("data/gait.Rda")
+
+# Convert this table into a tidy "long" data frame:
+clean_gait_data <- gait_data %>% pivot_longer(cols = 5:last_col(),
+                           names_to = "Time_of_measurement_seconds",
+                           values_to = "Degrees_off_vertical_orientation" )
+
+# Then convert values in the column "Times of measurement" into numeric time.
+clean_gait_data <- clean_gait_data %>% mutate(Time_of_measurement_seconds = sub("_.*", "", Time_of_measurement_seconds))
+
+# Calculate descriptive statistics
+summary_data <- clean_gait_data %>% 
+group_by(donorid, treatment, exercise,age) %>% 
+  # Because the measure have negative values, all values are converted to positive before calculating the mean
+  summarise(avg_imbalance = mean(sqrt(Degrees_off_vertical_orientation^2)),
+            median_imbalance = median(sqrt(Degrees_off_vertical_orientation^2)),
+            sd_imbalance = sd(Degrees_off_vertical_orientation)
+            ) 
+# Run this to see descriptive stats
+summary_data
+
+```
+
+## Merge both datasets
+
+```{r}
+# Merge PRS and gait data together
+prs_gait <- prs_data %>%
+  inner_join(summary_data, by = "donorid")
+
+# Check the merged dataset
+glimpse(prs_gait)
+
+# Check number of matched participants
+nrow(prs_gait)
+```
+
+## Visualise the relationship
+
+```{r}
+# Visualise the relationship between PRS and gait imbalance
+prs_gait |> 
+  ggplot(aes(
+    x = PRS,
+    y = avg_imbalance
+  )) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Relationship between PRS and gait imbalance",
+    x = "Polygenic Risk Score (PRS)",
+    y = "Mean absolute gait imbalance (degrees)"
+  ) +
+  theme_classic()
+```
+
+## Normality check
+
+```{r}
+# Check normality of PRS
+ggplot(prs_gait,aes(sample = PRS))+
+  geom_qq() +
+  geom_qq_line()
+
+shapiro.test(prs_gait$PRS)
+
+# Check normality of gait imbalance
+ggplot(prs_gait,aes(sample = avg_imbalance))+
+  geom_qq() +
+  geom_qq_line()
+
+shapiro.test(prs_gait$avg_imbalance)
+```
+
+## Correlation between the datasets
+
+```{r}
+# Spearman correlation between PRS and gait imbalance
+# Spearman is used because PRS is not normally distributed
+
+cor.test(
+  prs_gait$PRS,
+  prs_gait$avg_imbalance,
+  method = "spearman"
+)
+```
+
+## Results and Interpretation
+
+The scatterplot showed a weak negative trend between PRS and mean absolute gait imbalance.
+
+Normality was assessed using QQ plots and Shapiro-Wilk tests. PRS was not normally distributed (W = 0.808, p = 0.00348), while gait imbalance showed no significant departure from normality (W = 0.969, p = 0.8197). Therefore, Spearman's rank correlation was used to assess the relationship between the two datasets.
+
+The analysis showed a weak negative correlation between PRS and gait imbalance (p = -0.232, p = 0.3852). However, this relationship was not statistically significant (p \> 0.05).
+
+These results suggests that there is insufficient evidence of an association between polygenic risk and gait imbalance in the clinical trial patients. However, the small sample size (n = 16) limits the statistical power of this analysis. Other factors such as treatment, exercise and age, may also influence gait performance.
