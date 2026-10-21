@@ -40,3 +40,5 @@ go_deg <- readRDS("GO_terms.Rds")
 go_deg |>
   filter(gene %in% drug_screen_hits$hgnc_symbol) 
 ```
+
+All three gene targets are associated with GO:0042420 (dopamine biosynthetic process). All
