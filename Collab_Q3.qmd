@@ -26,10 +26,17 @@ overlapping_genes <- deg_results |>
 View(overlapping_genes)
 ```
 
-Since the target enzyme of compound 6618 had no HGNC symbol, we were only able to look for the targets of the other three compounds (4550, 4635 and 6314). Filtering for the targets of these compounds in deg_results revealed that these target genes are up-regulated.
+Since the target enzyme of compound 6618 had no HGNC symbol, we are only able to look for the targets of the other three compounds (4550, 4635 and 6314). Filtering for the targets of these compounds in deg_results revealed that these target genes are up-regulated in PD.
 
 ## B) GO term association 
 
 ```{r}
 
+# Load GO terms of DEGs
+go_deg <- readRDS("GO_terms_deg.Rds")
+```
+
+```{r}
+go_deg |>
+  filter(gene %in% drug_screen_hits$hgnc_symbol) 
 ```
