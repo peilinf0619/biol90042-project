@@ -39,7 +39,7 @@ group_by(donorid, treatment, exercise,age) %>%
             median_imbalance = median(sqrt(Degrees_off_vertical_orientation^2)),
             sd_imbalance = sd(Degrees_off_vertical_orientation)
             ) 
-# Run this to see descriptive stats
+# Run this to see descriptive stats for each patient
 summary_data
 
 ```
@@ -147,9 +147,9 @@ The analysis showed a weak negative correlation between PRS and gait imbalance (
 
 These results suggests that there is insufficient evidence of an association between polygenic risk and gait imbalance in the clinical trial patients. However, the small sample size (n = 16) limits the statistical power of this analysis. Other factors such as treatment, exercise and age, may also influence gait performance.
 
-However the pattern is very different when patients are grouped by treatment. First I used qqplot and shapiro test to confirm that distribution of data within 2 groups are normal, then run a linear regression in each group.
+However the pattern is very different when patients are grouped by treatment. First I used qqplot and shapiro test to confirm that distribution of data within 2 groups are normal, then ran a linear regression in each group.
 
-Association between PRS and balance in patient group receiving L-DOPA is not significant (linear regression p = 0.08), but there is a strong negative association between PRS and balance in the new treatment group (slope = -2.8, p = 0.008). This indicates PRS score is a potential predictor of response to the new compound, which is interesting because Parkinson disease patients tend to have higher PRS score than healthy people.
+Association between PRS and balance in patient group receiving L-DOPA is not statistically significant (linear regression p = 0.08), but there is a strong negative association between PRS and balance in the new treatment group (slope = -2.8, p = 0.008). This indicates PRS score is a potential predictor of response to the new compound, which is interesting because Parkinson disease patients tend to have higher PRS score than healthy people.
 
 ```{r}
 # Check normality in each treatment group:
