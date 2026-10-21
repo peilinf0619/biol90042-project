@@ -19,6 +19,29 @@ prs_donors <- prs_data |>
 
 # Display the population genetics donor IDs.
 prs_donors
+
+# Walter's clinical trial data summary stats
+load("data/gait.Rda")
+
+# Convert this table into a tidy "long" data frame:
+clean_gait_data <- gait_data %>% pivot_longer(cols = 5:last_col(),
+                           names_to = "Time_of_measurement_seconds",
+                           values_to = "Degrees_off_vertical_orientation" )
+
+# Then convert values in the column "Times of measurement" into numeric time.
+clean_gait_data <- clean_gait_data %>% mutate(Time_of_measurement_seconds = sub("_.*", "", Time_of_measurement_seconds))
+
+# Calculate descriptive statistics
+summary_data <- clean_gait_data %>% 
+group_by(donorid, treatment, exercise,age) %>% 
+  # because the measure have negative values, all values are converted to positive before calculating the mean
+  summarise(avg_imbalance = mean(sqrt(Degrees_off_vertical_orientation^2)),
+            median_imbalance = median(sqrt(Degrees_off_vertical_orientation^2)),
+            sd_imbalance = sd(Degrees_off_vertical_orientation)
+            ) 
+# Run this to see descriptive stats
+summary_data
+
 ```
 
 ## Question 2
