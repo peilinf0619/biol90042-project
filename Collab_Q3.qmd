@@ -32,8 +32,8 @@ Since the target enzyme of compound 6618 had no HGNC symbol, we are only able to
 
 ```{r}
 
-# Load GO terms of DEGs
-go_deg <- readRDS("GO_terms_deg.Rds")
+# Load GO terms 
+go_deg <- readRDS("GO_terms.Rds")
 ```
 
 ```{r}
