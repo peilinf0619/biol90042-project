@@ -291,45 +291,71 @@ summary(variance_check$variance_ratio)
 
 The homogeneity of variance assumption was assessed by comparing sample variances between test and control conditions for each compound. Variance ratios ranged from 1.005 to 91.467, with a median of 2.348, indicating that the observed variances were similar for some compounds but differed substantially for others. Given the variability in these ratios and the uncertainty associated with four technical replicates per condition, equal population variances could not be confidently assumed across all compounds.
 
-# Welch t-test
+## Welch t-test
 
 Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds. Although Q-Q plots and Shapiro–Wilk tests suggested no widespread severe departures from normality, equal variances between groups cannot be confidently assumed.
 
 ```{r}
+
+# Perform a Welch's t-test for each compound
+
 welch_results <- combined_data |>
+  # Group data by compound to perform a seperate t-test for each
   group_by(cmpd) |>
   t_test(
-    luminescence ~ cond,
-    var.equal = FALSE,
-    alternative = "less",
-    p.adjust.method = "none"
-  ) |> ungroup() |>
+    luminescence ~ cond, # Compare luminescence between ctrl/group conditions
+    var.equal = FALSE, # Welch's t-test allows for unequal variances
+    alternative = "less", # Test whether ctrl RLUs < test RLUs
+    p.adjust.method = "none" # Retain unadjusted p-values 
+    # Remove grouping before multiple testing correction
+  ) |> ungroup() |> 
+  # Apply BH correction across all compounds to control for 
+  # the false discovery rate from multiple testing 
   adjust_pvalue(method = "BH")
 ```
 
 ```{r}
+
+# Identify compound with statistically significant differences in luminescence 
+# following multiple-testing correction
+
 significant_compounds <- welch_results |>
+  # Filter for compounds with BH-adjusted p-values < 0.05
   filter(p.adj < 0.05) |>
+  # Arrange compounds in ascending order of adjusted p-value
   arrange(p.adj)
 ```
 
-# Question 3
-
-What are the mechanisms of action and targets of the compounds you identify in Q2?
+# Question 3: What are the mechanisms of action and targets of the compounds you identify in Q2?
 
 ```{r}
+# Join compound_dict to comparison_data to obtain information about
+# each compound's biological target and action
 
+# Load stringr package for string manipulation
 library(stringr)
 
+# Retain all rows from comparison_data and match cmpd info
 comparison_data <- comparison_data |>
   left_join(
     compound_dict |>
+      # Remove "cmpd_" prefix from compound IDs to match 
+      # the format of the cmpd column in comparison_data 
       mutate(cmpd = str_remove(id, "^cmpd_")) |>
+      # Remove original ID column as no longer needed
       select(-id),
+    # Match the two datasets using compound identifier
     by = "cmpd"
   )
 
+# Identify the biological targets and mechanism of actions of previously identified significant compounds from Q2
 comparison_data |>
-  filter(cmpd %in% significant_compounds$cmpd) |> 
+  # Retain only compounds identified as significant in Q2
+  filter(cmpd %in% significant_compounds$cmpd) |>
+  # Display compound ID, taregt enzyme, action and HGNC symbol
+  select(cmpd, target_enzyme, action, hgnc_symbol)
+  # View the filtered results
   View()
 ```
+
+All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists, though act on different enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
