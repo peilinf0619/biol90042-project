@@ -3,7 +3,7 @@ title: "Linking between datasets"
 format: html
 ---
 
-## Question 1: Participants shared across all four study arms
+## Q1: Participants shared across all four study arms
 
 ```{r}
 # Load the package used for data wrangling.
@@ -44,12 +44,10 @@ summary_data
 
 ```
 
-## Question 2
+## Q2: Do any variables other than gene expression distinguish the RNA-seq cases from controls?
 
-## Question 3
+## Q3: Are any of the gene targets of hit compounds from the drug screen, differentially expressed in RNA-seq? Which GO terms are they associated with and what might this tell you about the pathology of PD?
 
-## Question 4: Relationship between the PRS and gait of patients in the clinical trial
+## Q4: Relationship between the PRS and gait of patients in the clinical trial
 
-
-
-## Question 5
+## Q5: Summary of findings and directions for future research 

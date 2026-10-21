@@ -261,11 +261,7 @@ shapiro_results |>
   )
 ```
 
-Q-Q plots .
-
-Analysis performing Shapiro-Wilk tests confirm that only 26 (6.7%) of the 192 control and test compounds
-
-Data are normally distributed and we can conduct t-test.
+Only 26 of 384 groups (6.7%) had Shapiro-Wilk p < 0.05, close to the ~5% expected by chance, and the pooled residual Q-Q plot showed points close to the line. There was no evidence against normality, so t-tests were appropriate
 
 ```{r}
 welch_results <- combined_data |>

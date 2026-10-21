@@ -1,0 +1,335 @@
+---
+title: "drug_screen_analysis"
+format: html
+editor: visual
+---
+
+## Look through drug screen datasets
+
+```{r}
+# Load drug screen data 
+load("~/Desktop/r_course/assessments/final_proj/drugscreen.Rda")
+
+# use anyNA() function on data to see if any values are missing
+anyNA(plate1)
+anyNA(plate_meta)
+anyNA(compound_dict)
+
+# plate1 and plate_meta don't have any NA values 
+# see how many NAs are in compound_dict
+summary(compound_dict)
+```
+
+After looking through data, I can see that the plate maps for luminescence and compounds don't contain any NA values. compound_dict has one NA value (cmpd_6618, where it's hgnc symbol is not included). This information is useful going into analyses, as I don't have to remove NAs in the plate_meta and plate1 datasets.
+
+# Question 1: Using the geom_tile() function, visualise the luminescence across the plate. Do there appear to be any spatial patterns in this data?
+
+## Load packages
+
+```{r}
+# Load tidyverse and ggplot2
+library(tidyverse)
+library(ggplot2)
+
+```
+
+## Prepare plate1 dataset to use geom_tile()
+
+plate1 contains luminescence (RLU) values, and will therefore be used to answer Q1
+
+```{r}
+# geom_tile requires plate1 to be in long format
+
+plate1_long <- plate1 |> 
+  pivot_longer(
+    # collapse all columns into 1 column except plate_row 
+    cols = -plate_row, 
+    # all columns collapsed into 1 column named "plate_col"
+    names_to = "plate_col", 
+    # all RLU values in column named "luminescence"
+    values_to = "luminescence"
+  )
+
+# Check that pivot_longer() worked 
+View(plate1_long)
+
+# Convert plate_row and plate_col values from character to numeric 
+# using parse_number() for 'tidier' data
+
+plate1_long <- plate1_long |> 
+  mutate(
+    # keep numbers after "row"
+    plate_row = parse_number(plate_row),
+    # keep numbers after "col"
+    plate_col = parse_number(plate_col))
+
+# Check rows and columns have numeric values 
+View(plate1_long)
+```
+
+## Visualise luminescence as heatmap
+
+Loading esquisse
+
+```{r}
+# Install and load esquisse
+
+remotes::install_github("dreamRs/esquisse")
+
+library(esquisse)
+
+esquisse::esquisser(plate1_long)
+```
+
+Copy/paste code from esquisse below:
+
+```{r}
+ggplot(plate1_long) +
+  
+  aes(x = plate_col, y = plate_row, fill = luminescence) +
+  geom_tile(
+    colour = "grey50", 
+    linewidth = 0.1
+  ) +
+  scale_fill_viridis_c(option = "viridis", direction = 1) +
+  # label every 2nd column number at the top to avoid over-cluttering
+  scale_x_continuous(breaks = seq(1, 48, by = 2), expand = c(0, 0), position = "top") +
+  # use scale_y_reverse() to get rows to start from 1 at the top like a plate
+  scale_y_reverse(breaks = seq(1, 32, by = 2), expand = c(0, 0)) +
+  coord_equal() +
+  # add title, axes titles and legend
+  labs(
+    x = "Column",
+    y = "Row",
+    title = "Luminescence across 1536-well plate after 24h MPP treatment",
+    fill = "Luminescence (RLU)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 12L,
+                              face = "bold",
+                              hjust = 0.5),
+    axis.title.y = element_text(size = 10L),
+    axis.title.x = element_text(size = 10L)
+  )
+```
+
+## Answer
+
+There doesn't appear to be any spatial patterns in the data. Wells with higher RLU values seem to be randomly scattered throughout the 1536-well plate.
+
+# Question 2: Which compounds are statistically significantly associated with increased neuronal viability after MPP exposure? Ensure that you check your assumptions.
+
+## Incorporating plate_meta dataset
+
+```{r}
+library(dplyr)
+
+# convert plate_meta into long format
+cmpd_long <- plate_meta |> 
+  pivot_longer(
+    # collapse all columns into 1 column except plate_row 
+    cols = -plate_row, 
+    # all columns collapsed into 1 column named "plate_col"
+    names_to = "plate_col", 
+    # all RLU values in column named "luminescence"
+    values_to = "cmpd"
+  )
+
+# Check that pivot_longer() worked
+View(cmpd_long)
+
+# Convert plate_row and plate_col values from character to numeric so that cmpd_long 
+# can be joined to plate1_long
+cmpd_long <- cmpd_long |> 
+  mutate(
+    # keep numbers after "row"
+    plate_row = parse_number(plate_row),
+    # keep numbers after "col"
+    plate_col = parse_number(plate_col))
+
+# Combine plate1_long and cmpd_long using left_join
+combined_data <- plate1_long |> 
+  left_join(cmpd_long, 
+            by = c("plate_row", "plate_col"))
+
+# Check that left_join() worked
+View(cmpd_long)
+```
+
+## Tidying combined_data
+
+```{r}
+# Replace cmpd column with two new columns for the cmpd number and 
+# condition (ctrl/test)
+combined_data <- combined_data |> 
+  separate(
+    cmpd,
+    into = c("prefix", "cmpd", "cond"),
+    sep = "_"
+  ) |> 
+  # remove prefix
+  select(-prefix)
+
+# Check two new columns contain the cmpd number and the condition type
+View(combined_data)
+
+# Check that each compound (test/ctrl) has 4 replicates
+combined_data  |> 
+  count(cmpd, cond) |> 
+  filter(n != 4)
+```
+
+## Analyse how average luminescence changes between conditions (test vs. ctrl) for each compound
+
+```{r}
+summary <- combined_data |> 
+  group_by(cmpd, cond) |> 
+  summarise(
+    mean_lum = mean(luminescence),
+    sd_lum = sd(luminescence),
+    n = n(),
+    .groups = "drop"
+    )
+# Check summary dataset created includes mean_lum and sd_lum columns
+View(summary)
+
+comparison_data <- summary |> 
+  select(cmpd, cond, mean_lum) |> 
+  pivot_wider(
+    names_from = cond,
+    values_from = mean_lum
+  ) |> 
+  mutate(
+    difference = test - ctrl,
+    percent_change = 100 * (test - ctrl) / ctrl
+  )
+
+View(comparison_data)
+```
+
+## Assumption 1: Observations are independent of one another
+
+## Assumption 2: Outcome is approximately normally distributed within each group
+
+Install and load "rstatix" package
+
+```{r}
+install.packages("rstatix")
+library(rstatix)
+```
+
+Generate Q-Q plots to accept/reject normality
+
+```{r}
+# Determine residuals for each compound and condition from the group's mean
+residual_data <- combined_data |>
+  group_by(cmpd, cond) |>
+  mutate(
+    residual = luminescence - mean(luminescence)
+  ) |>
+  ungroup()
+
+# Check that residual column was added  
+View(residual_data)
+
+# Generate Q-Q plots for control compounds and test compounds 
+ggplot(residual_data, aes(sample = residual)) +
+  geom_qq() +
+  geom_qq_line() +
+  facet_wrap(~cond) +
+  labs(
+    title = "Q-Q plots of within-group residuals",
+    x = "Theoretical quantiles",
+    y = "Residual luminescence (RLU)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# Assess normality using Shapiro-Wilk tests
+shapiro_results <- combined_data |>
+  group_by(cmpd, cond) |>
+  summarise(
+    shapiro_p = shapiro.test(luminescence)$p.value,
+    .groups = "drop"
+  )
+
+shapiro_results |>
+  summarise(
+    total_tests = n(),
+    p_below_05 = sum(shapiro_p < 0.05),
+    percentage = mean(shapiro_p < 0.05) * 100
+  )
+```
+
+Normality within each group was assessed using Q-Q plots of within-group residuals and Shapiro-Wilk tests. The Q-Q plots for both control and test wells showed points lying close to the reference line, with only minor deviations in the extreme tails. Shapiro-Wilk tests were run separately for each compound and condition (384 groups); 26 (6.8%) had p \< 0.05, which is close to the \~5% expected by chance alone if all groups were normally distributed. Together, these results provide no strong evidence against normality within groups, so the normality assumption was considered reasonable and a parametric t-test was appropriate rather than a non-parametric alternative (Wilcoxon rank-sum test).
+
+## Assumption 3: Equal variance
+
+To assess whether the test and control group have approximately equal population variances for each of the 192 compounds, the *summary* dataset generated earlier can ...
+
+```{r}
+
+variance_check <- summary |>
+  select(cmpd, cond, sd_lum) |>
+  pivot_wider(
+    names_from = cond,
+    values_from = sd_lum
+  ) |>
+  mutate(
+    var_ctrl = ctrl^2,
+    var_test = test^2,
+    variance_ratio = pmax(var_ctrl, var_test) /
+      pmin(var_ctrl, var_test)
+  )
+
+View(variance_check)
+
+summary(variance_check$variance_ratio)
+```
+
+The homogeneity of variance assumption was assessed by comparing sample variances between test and control conditions for each compound. Variance ratios ranged from 1.005 to 91.467, with a median of 2.348, indicating that the observed variances were similar for some compounds but differed substantially for others. Given the variability in these ratios and the uncertainty associated with four technical replicates per condition, equal population variances could not be confidently assumed across all compounds.
+
+# Welch t-test
+
+Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds. Although Q-Q plots and Shapiro–Wilk tests suggested no widespread severe departures from normality, equal variances between groups cannot be confidently assumed.
+
+```{r}
+welch_results <- combined_data |>
+  group_by(cmpd) |>
+  t_test(
+    luminescence ~ cond,
+    var.equal = FALSE,
+    alternative = "less",
+    p.adjust.method = "none"
+  ) |> ungroup() |>
+  adjust_pvalue(method = "BH")
+```
+
+```{r}
+significant_compounds <- welch_results |>
+  filter(p.adj < 0.05) |>
+  arrange(p.adj)
+```
+
+# Question 3
+
+What are the mechanisms of action and targets of the compounds you identify in Q2?
+
+```{r}
+
+library(stringr)
+
+comparison_data <- comparison_data |>
+  left_join(
+    compound_dict |>
+      mutate(cmpd = str_remove(id, "^cmpd_")) |>
+      select(-id),
+    by = "cmpd"
+  )
+
+comparison_data |>
+  filter(cmpd %in% significant_compounds$cmpd) |> 
+  View()
+```
