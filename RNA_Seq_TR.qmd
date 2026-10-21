@@ -249,9 +249,10 @@ legend(
 )
 ```
 
-## Save results 
+## Save results
 
 ```{r}
 
 saveRDS(ma_plot_data_fct, "RNAseq_expression_status.rds")
+saveRDS(yay, "GO_terms_deg.rds")
 ```
