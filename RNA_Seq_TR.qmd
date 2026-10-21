@@ -128,6 +128,7 @@ top_tibble_ID <- left_join(top_tibble, gene_names, by = "genes")
 new <- efit$genes
 new2 <- new |> rename(entrezid = genes)
 new3 <- left_join(new2, entrez_genename_key)
+
 ```
 
 ### Visualise differential-expression results
@@ -246,4 +247,11 @@ legend(
   fill = c("#E30B5C", "#800080"),
   legend = levels(dge$samples$group)
 )
+```
+
+## Save results 
+
+```{r}
+
+saveRDS(ma_plot_data_fct, "RNAseq_expression_status.rds")
 ```
