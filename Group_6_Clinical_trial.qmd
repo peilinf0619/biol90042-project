@@ -36,6 +36,9 @@ clean_gait_data <- gait_data %>% pivot_longer(cols = 5:last_col(),
 # Then convert values in the column "Times of measurement" into numeric time.
 clean_gait_data <- clean_gait_data %>% mutate(Time_of_measurement_seconds = sub("_.*", "", Time_of_measurement_seconds))
 
+# convert time of measurement to numeric
+clean_gait_data <- clean_gait_data %>% 
+  mutate(Time_of_measurement_seconds = as.numeric(Time_of_measurement_seconds))
 
 # Plot raw data for patients receiving L-DOPA control compound
 plot_old_compound <- clean_gait_data %>% 
@@ -44,14 +47,21 @@ plot_old_compound <- clean_gait_data %>%
   geom_col()+
   guides(fill = "none")+
   facet_wrap(~donorid)+
-  labs(title = "L-DOPA")+
+  labs(title = "L-DOPA",
+       x = "Time of measurement (s)",
+       y = "Degrees off vertical orientation")+
+  scale_x_continuous(breaks = c(0, 350, 700),
+                     labels = c("0", "350", "700")
+                     )+
   scale_y_continuous(limits = c(-60,60))+
   theme_bw()+
-  theme(axis.text.x = element_blank(),
+  theme(
         panel.grid.major.x = element_blank(),
         plot.margin = margin(t = 20, r = 40, b = 20, l = 40),
         plot.title = element_text(hjust = 0.5, vjust = 5)
         )
+
+
 
 # Plot raw data for patients receiving new compound
 plot_new_compound <- clean_gait_data %>% 
@@ -60,10 +70,17 @@ plot_new_compound <- clean_gait_data %>%
   geom_col()+
   labs(y = "")+
   facet_wrap(~donorid)+
+  scale_x_continuous(breaks = c(0, 350, 700),
+                     labels = c("0", "350", "700")
+                     )+
   scale_y_continuous(limits = c(-60,60))+
   theme_bw()+
-  labs(title = "New compound")+
-  theme(axis.text.x = element_blank(),
+  labs(title = "New compound",
+       x = "Time of measurement (s)")+
+  scale_fill_discrete(breaks = c("y","n"),
+                        labels = c("Yes", "No"),
+                        name = "Exercise")+
+  theme(
         panel.grid.major.x = element_blank(),
         plot.margin = margin(t = 20, r = 40, b = 20, l = 40),
         plot.title = element_text(hjust = 0.5, vjust = 5)
@@ -72,7 +89,8 @@ plot_new_compound <- clean_gait_data %>%
 # Combined two plots into the same figure. 
 plot_grid(plot_old_compound, plot_new_compound)
           
-         
+
+
 
   
 ```
