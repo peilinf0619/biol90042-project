@@ -50,12 +50,6 @@ summary_data
 
 ## Question 4: Relationship between the PRS and gait of patients in the clinical trial
 
-```{r}
-# Check the structure of the cleaned PRS dataset
-glimpse(prs_data)
 
-# View the first few rows
-head(prs_data)
-```
 
 ## Question 5
