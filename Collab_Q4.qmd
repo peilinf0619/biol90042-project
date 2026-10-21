@@ -11,7 +11,7 @@ format: html
 library(tidyverse)
 
 # Load the cleaned PRS data
-prs_data <- read_csv("Group6_Population_Genetics.csv")
+load("data/prs.Rda")
 
 # Check the structure of the cleaned PRS dataset
 glimpse(prs_data)
@@ -59,7 +59,7 @@ nrow(prs_gait)
 
 ## Visualise the relationship
 
-```{r}
+```{r prs-gait-scatterplot}
 # Visualise the relationship between PRS and gait imbalance
 prs_gait |> 
   ggplot(aes(
@@ -98,21 +98,20 @@ prs_gait %>%
     y = "Mean absolute gait imbalance (degrees)"
   ) +
   theme_classic()
-
-
-
 ```
 
 ## Normality check
 
-```{r}
+```{r prs-normality}
 # Check normality of PRS
 ggplot(prs_gait,aes(sample = PRS))+
   geom_qq() +
   geom_qq_line()
 
 shapiro.test(prs_gait$PRS)
+```
 
+```{r gait-normality}
 # Check normality of gait imbalance
 ggplot(prs_gait,aes(sample = avg_imbalance))+
   geom_qq() +
