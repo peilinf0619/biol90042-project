@@ -148,7 +148,7 @@ summary_data %>%
   shapiro.test()
 ```
 
-Shapiro-Wilk test returns a p-value \>0.05 for both group and according to QQ plot, most data point sit on the line. So data is likely normally distributed. So t-test will be used to compared between two groups.
+Shapiro-Wilk test returns a p-value >0.05 for both group and according to QQ plot, most data point sit on the line. So data is likely normally distributed. So t-test will be used to compared between two groups.
 
 ```{r}
 summary_data %>% 
@@ -181,7 +181,7 @@ t.test(
 )
 ```
 
-T-test gives a p-value \<0.05, meaning there is statistical significant difference in gait between participants receiving L-DOPA and the new compound.
+T-test gives a p-value <0.05, meaning there is statistical significant difference in gait between participants receiving L-DOPA and the new compound.
 
 ## Investigate how exercise affects drug effect
 
@@ -239,7 +239,7 @@ clean_ANOVA
 write.csv(clean_ANOVA, file ="output/anova_table.csv")
 ```
 
-The results of this test indicate, however, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising itself does improve balance, but not likely improve the effect of the drug.
+The results of this test indicate, however, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising itself does improve balance (p = 0.01), but likely not improve the effect of the drug.
 
 Next we ask how age affects gait, using a linear regression model:
 
@@ -267,4 +267,4 @@ Next we ask how age affects gait, using a linear regression model:
     )
 ```
 
-In both treatment group, balance tends to get worse as age increases, (both groups have postive slope). However linear regression indicates this association is only statistically significant in the group treated with new compound (this group also has a higher slope). This suggest that for this new compound, effect decreases with age.
+In both treatment group, balance tends to get worse as age increases, (both groups have positive slope). However linear regression indicates this association is only statistically significant in the group treated with new compound (this group also has a higher slope). Overall, gait tends to decrease as the patient age, however this effects is likely independent from treatment. 
