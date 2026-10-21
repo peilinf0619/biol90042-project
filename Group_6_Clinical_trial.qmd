@@ -14,6 +14,7 @@ execute
 library(tidyverse)
 library(cowplot)
 library(ggpubr)
+library(broom)
 ```
 
 ## Import clinical data and visualize raw data
