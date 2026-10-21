@@ -11,5 +11,5 @@ editor: visual
 drug_screen_hits <- readRDS("hit_targets.rds")
 
 # Remove NA values from drug_screen_hits
-
+drug_screen_hits <- na.omit(drug_screen_hits)
 ```

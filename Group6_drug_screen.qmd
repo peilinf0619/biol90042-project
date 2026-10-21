@@ -363,12 +363,6 @@ All four of the compounds that are statistically significantly associated with i
 # Save results
 
 ```{r}
-# Extract gene targets of significant drug screen compounds
-hit_targets <- comparison_data |>
-  filter(cmpd %in% significant_compounds$cmpd) |>
-  select(cmpd, target_enzyme, action, hgnc_symbol) |>
-  distinct()
-
 # Export results for collaborative analysis
-saveRDS(hit_targets, "hit_targets.rds")
+saveRDS(significant_compounds, "hit_targets.rds")
 ```
