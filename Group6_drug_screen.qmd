@@ -358,7 +358,7 @@ comparison_data |>
   View()
 ```
 
-All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists, though act on different enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
+All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists. Though, the compounds have different target enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
 
 # Save results
 
