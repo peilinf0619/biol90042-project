@@ -8,5 +8,8 @@ editor: visual
 
 ```{r}
 # Load drug screen data
-drugscreen_data <- 
+drug_screen_hits <- readRDS("hit_targets.rds")
+
+# Remove NA values from drug_screen_hits
+
 ```

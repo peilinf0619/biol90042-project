@@ -8,7 +8,7 @@ editor: visual
 
 ```{r}
 # Load drug screen data 
-load("~/Desktop/r_course/assessments/final_proj/drugscreen.Rda")
+load("data/drugscreen.Rda")
 
 # use anyNA() function on data to see if any values are missing
 anyNA(plate1)
@@ -359,3 +359,16 @@ comparison_data |>
 ```
 
 All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists, though act on different enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
+
+# Save results
+
+```{r}
+# Extract gene targets of significant drug screen compounds
+hit_targets <- comparison_data |>
+  filter(cmpd %in% significant_compounds$cmpd) |>
+  select(cmpd, target_enzyme, action, hgnc_symbol) |>
+  distinct()
+
+# Export results for collaborative analysis
+saveRDS(hit_targets, "hit_targets.rds")
+```
