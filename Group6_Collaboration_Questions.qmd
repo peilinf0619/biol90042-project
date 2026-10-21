@@ -3,7 +3,7 @@ title: "Linking between datasets"
 format: html
 ---
 
-## Question 1：Participants shared across all four study arms
+## Question 1: Participants shared across all four study arms
 
 ```{r}
 # Load the package used for data wrangling.
@@ -25,6 +25,14 @@ prs_donors
 
 ## Question 3
 
-## Question 4
+## Question 4: Relationship between the PRS and gait of patients in the clinical trial
+
+```{r}
+# Check the structure of the cleaned PRS dataset
+glimpse(prs_data)
+
+# View the first few rows
+head(prs_data)
+```
 
 ## Question 5
