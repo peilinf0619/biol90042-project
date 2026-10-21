@@ -74,6 +74,33 @@ prs_gait |>
     y = "Mean absolute gait imbalance (degrees)"
   ) +
   theme_classic()
+
+# Introduce patient covariants: drug
+prs_gait %>% 
+  ggplot(aes(PRS, avg_imbalance, colour = treatment)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Relationship between PRS and gait imbalance",
+    x = "Polygenic Risk Score (PRS)",
+    y = "Mean absolute gait imbalance (degrees)"
+  ) +
+  theme_classic()
+
+# Introduce patient covariants: exercise
+prs_gait %>% 
+  ggplot(aes(PRS, avg_imbalance, colour = exercise)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Relationship between PRS and gait imbalance",
+    x = "Polygenic Risk Score (PRS)",
+    y = "Mean absolute gait imbalance (degrees)"
+  ) +
+  theme_classic()
+
+
+
 ```
 
 ## Normality check
