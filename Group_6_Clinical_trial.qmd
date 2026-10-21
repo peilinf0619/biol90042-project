@@ -163,8 +163,8 @@ summary_data %>%
         axis.line = element_line(linewidth = 1.3),
         axis.ticks = element_line(linewidth = 1.3),
         axis.ticks.length = unit(0.1, "inch"),
-        plot.margin = margin(40, 20, 0,0),
-        plot.title = element_text(hjust = 0.5, vjust = 4)
+        plot.margin = margin(40, 20, 0,30),
+        plot.title = element_text(hjust = 0.5, vjust = 4),
   )+
   stat_compare_means(
     comparisons = list(c("L-DOPA control", "New compound")),
@@ -227,10 +227,15 @@ Next run two-way ANOVA:
 
 ```{r}
 
-h
 
-summary(aov(avg_imbalance ~ treatment * exercise,
-    data = summary_data))
+anova_tbl <- aov(avg_imbalance ~ treatment * exercise,
+    data = summary_data)
+
+clean_ANOVA <- tidy(anova_tbl)
+
+clean_ANOVA
+
+write.csv(clean_ANOVA, file ="output/anova_table.csv")
 ```
 
 The results of this test indicate, however, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising itself does improve balance, but not likely improve the effect of the drug.
@@ -238,7 +243,6 @@ The results of this test indicate, however, the effect on balance of exercise an
 Next we ask how age affects gait, using a linear regression model:
 
 ```{r}
-{r}
 # Scatter plot to visualize relalationship between Gait and age
   summary_data %>% 
   ggplot(aes(age, avg_imbalance, colour = treatment))+
@@ -253,12 +257,12 @@ Next we ask how age affects gait, using a linear regression model:
     stat_regline_equation(
       aes(label = after_stat(eq.label)),
       label.x = 60,
-      label.y = c(17, 16)      # one value per group
+      label.y = c(17, 16)    
     ) +
     stat_cor(
       aes(label = after_stat(p.label)),
       label.x = 66,
-      label.y = c(17, 16)      # same heights so each p-value sits next to its slope
+      label.y = c(17, 16)     
     )
 ```
 
