@@ -11,8 +11,25 @@ editor: visual
 drug_screen_hits <- readRDS("hit_targets.rds")
 
 # Load RNAseq DEG analysis
-expression <- readRDS("RNAseq_expression_status.rds")
+deg_results <- readRDS("RNAseq_expression_status.rds")
 
 # Remove NA values from drug_screen_hits
 drug_screen_hits <- na.omit(drug_screen_hits)
+```
+
+## A) Are gene targets of hit compounds differentially expressed in RNA-seq?
+
+```{r}
+overlapping_genes <- deg_results |>
+  filter(gene %in% drug_screen_hits$hgnc_symbol) 
+
+View(overlapping_genes)
+```
+
+Since the target enzyme of compound 6618 had no HGNC symbol, we were only able to look for the targets of the other three compounds (4550, 4635 and 6314). Filtering for the targets of these compounds in deg_results revealed that these target genes are up-regulated.
+
+## B) GO term association 
+
+```{r}
+
 ```
