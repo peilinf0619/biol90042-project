@@ -32,44 +32,12 @@ Our project includes the following analyses:
 - `Group6_RNA-Seq_TR.qmd` - RNA-seq of patient iPSC-derived neurons analysis
 - `Group6_Drug_Screen.qmd` - Drug screening analysis
 - `Group6_Clinical_Trial.qmd`
-- `CollabQ_1 ~ Collab_Q5` - Collaboration questions
+- `Group6_CollabQ_1 ~ Group6_Collab_Q5` - Collaboration questions
 - `Group6_Population_Genetics.csv` - Population genetics CSV file
 - `biol90042-project.Rproj` - RStudio project file
 
 Additional Quarto files will be added as the project progresses.
 
-## Software and Tools
-
-- R
-- RStudio
-- Quarto
-- Git and GitHub
-
-## How to Run
-
-1. Clone or download this repository.
-2. Open `biol90042-project.Rproj` in RStudio.
-3. Ensure the required R packages are installed.
-4. Check that the necessary datasets are available.
-5. Open the relevant `.qmd` file.
-6. Run the analysis or render the Quarto document.
-
 ## Collaboration Guidelines
 
 All group members contribute to this shared repository.
-
-To avoid conflicts:
-
-1. Pull the latest changes before starting work.
-2. Work primarily on your assigned Quarto file.
-3. Save and commit your changes with a descriptive message.
-4. Pull any new changes and resolve conflicts if necessary.
-5. Push your changes to the repository.
-6. Communicate with other members before modifying shared files.
-
-## Project Status
-
-This project is currently in progress.
-
-Analyses and documentation will be updated as group members
-complete their assigned tasks.
