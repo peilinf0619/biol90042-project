@@ -58,7 +58,7 @@ gait_ids <- gait_data |>
 
 # Count the number of unique overlapping donors
 
-n_overlapping <- length(overlapping_donors)
+n_overlapping \<- length(overlapping_donors)
 
 ```{r}
 # Identify unique donor IDs present in all three datasets

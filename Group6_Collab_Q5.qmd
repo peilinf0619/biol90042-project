@@ -2,7 +2,3 @@
 title: "Group6_Collab_Q5"
 format: html
 ---
-
-```{r}
-
-```
