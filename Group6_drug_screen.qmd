@@ -186,41 +186,50 @@ combined_data  |>
   filter(n != 4)
 ```
 
-## Analyse how average luminescence changes between conditions (test vs. ctrl) for each compound
+## Summarise luminescence for each compound and condition
+
+For each compound, the mean and standard deviation describe the RLU measurements within the test and control groups. The difference and percentage change quantify the direction and magnitude of test vs. control response, with higher luminescence interpreted as consistent with greater cell survival/growth.
 
 ```{r}
-summary <- combined_data |> 
+summary_data <- combined_data |> 
   group_by(cmpd, cond) |> 
   summarise(
-    mean_lum = mean(luminescence),
-    sd_lum = sd(luminescence),
-    n = n(),
+    mean_lum = mean(luminescence), # mean RLU for each compound and condition
+    sd_lum = sd(luminescence), # variation between replicate wells 
+    n = n(), # number of replicate wells 
     .groups = "drop"
     )
 # Check summary dataset created includes mean_lum and sd_lum columns
-View(summary)
+View(summary_data)
 
-comparison_data <- summary |> 
+# Put control and test means side-by-side for easier comparison
+comparison_data <- summary_data |> 
   select(cmpd, cond, mean_lum) |> 
   pivot_wider(
     names_from = cond,
     values_from = mean_lum
   ) |> 
   mutate(
-    difference = test - ctrl,
+    difference = test - ctrl, # positive = higher RLU in test wells 
     percent_change = 100 * (test - ctrl) / ctrl
   )
 
 View(comparison_data)
 ```
 
-## Assumption 1: Observations are independent of one another
+## Assumption 1: Independence of observations
+
+The t-test assumes that observations within and between the compared groups are independent. The four wells per condition are technical replicates. Although they are separate wells, they may share plate-lvel
 
 ## Assumption 2: Outcome is approximately normally distributed within each group
 
-Install and load "rstatix" package
+Normality can be explored using Q-Q plots of residuals centred within each compound-condition group, followed by Shapiro-Wilk tests for individual groups. Centring removes differences in group means before inspeciting the pooled residual distributions. 
+
+
 
 ```{r}
+# Install and load "rstatix" package
+
 install.packages("rstatix")
 library(rstatix)
 ```
@@ -228,7 +237,7 @@ library(rstatix)
 Generate Q-Q plots to accept/reject normality
 
 ```{r}
-# Determine residuals for each compound and condition from the group's mean
+# Subtract each compound-condition mean to obtain within-group residuals
 residual_data <- combined_data |>
   group_by(cmpd, cond) |>
   mutate(
@@ -239,7 +248,9 @@ residual_data <- combined_data |>
 # Check that residual column was added  
 View(residual_data)
 
-# Generate Q-Q plots for control compounds and test compounds 
+# Compare residuals with a theoretical normal distribution across separate 
+# panels to allow control/test residuals to be viewed independently
+
 ggplot(residual_data, aes(sample = residual)) +
   geom_qq() +
   geom_qq_line() +
@@ -253,7 +264,7 @@ ggplot(residual_data, aes(sample = residual)) +
 ```
 
 ```{r}
-# Assess normality using Shapiro-Wilk tests
+# Run Shapiro-Wilk test within each compound-condition group 
 shapiro_results <- combined_data |>
   group_by(cmpd, cond) |>
   summarise(
@@ -261,6 +272,7 @@ shapiro_results <- combined_data |>
     .groups = "drop"
   )
 
+# Count groups with p < 0.05; summarise screening
 shapiro_results |>
   summarise(
     total_tests = n(),
@@ -269,37 +281,38 @@ shapiro_results |>
   )
 ```
 
-Normality within each group was assessed using Q-Q plots of within-group residuals and Shapiro-Wilk tests. The Q-Q plots for both control and test wells showed points lying close to the reference line, with only minor deviations in the extreme tails. Shapiro-Wilk tests were run separately for each compound and condition (384 groups); 26 (6.8%) had p \< 0.05, which is close to the \~5% expected by chance alone if all groups were normally distributed. Together, these results provide no strong evidence against normality within groups, so the normality assumption was considered reasonable and a parametric t-test was appropriate rather than a non-parametric alternative (Wilcoxon rank-sum test).
+The Q-Q plots showed that residuals were broadly consistent with normality, with some deviations in the tails. Of 384 compound-condition groups, 26 (6.8%) had Shapiro-Wilk p-values below 0.05. This is not strong evidence of widespread departures from normality, although each test uses only four observations and therefore has limited power. The pooled Q-Q plots can also conceal differences between individual groups. Together, these results provide no strong evidence against normality within groups, so the normality assumption was considered reasonable and a parametric t-test was appropriate
 
 ## Assumption 3: Equal variance
 
-To assess whether the test and control group have approximately equal population variances for each of the 192 compounds, the *summary* dataset generated earlier can ...
+The conventional Student's t-test assumes equal population variances. To investigate this, the sample variances of test and control wells were compared for each compound. The variance ratio is calculated by dividing the larger sample variance by the smaller, so a value close to 1 indicates similar observed variation.
 
 ```{r}
-
-variance_check <- summary |>
+# Compare sample variances of control and test wells for each compound
+variance_check <- summary_data |>
   select(cmpd, cond, sd_lum) |>
   pivot_wider(
     names_from = cond,
     values_from = sd_lum
   ) |>
   mutate(
-    var_ctrl = ctrl^2,
+    var_ctrl = ctrl^2, # Variance = sd^2
     var_test = test^2,
     variance_ratio = pmax(var_ctrl, var_test) /
-      pmin(var_ctrl, var_test)
+      pmin(var_ctrl, var_test) # larger variance divided by smaller 
   )
 
 View(variance_check)
 
+# Summarise distribution of variance rations across all compounds
 summary(variance_check$variance_ratio)
 ```
 
-The homogeneity of variance assumption was assessed by comparing sample variances between test and control conditions for each compound. Variance ratios ranged from 1.005 to 91.467, with a median of 2.348, indicating that the observed variances were similar for some compounds but differed substantially for others. Given the variability in these ratios and the uncertainty associated with four technical replicates per condition, equal population variances could not be confidently assumed across all compounds.
+The variance ratios ranged from 1.005 to 91.467, with a median of 2.348. Thus, some compounds had similar test and control sample variances while others differed substantially. With only four wells per condition, the estimated variances are themselves uncertain, so the equal variance assumption could not be confidently supported across all compounds.
 
 ## Welch t-test
 
-Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds. Although Q-Q plots and Shapiro–Wilk tests suggested no widespread severe departures from normality, equal variances between groups cannot be confidently assumed.
+Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds. 
 
 ```{r}
 
@@ -360,8 +373,14 @@ comparison_data |>
   filter(cmpd %in% significant_compounds$cmpd) |>
   # Display compound ID, taregt enzyme, action and HGNC symbol
   select(cmpd, target_enzyme, action, hgnc_symbol)
-  # View the filtered results
-  View()
+
+comparison_data |> 
+  select(
+    Compound = cmpd, 
+    Action = action,
+    `Target Gene ID` = target_enzyme, 
+    `Target HGNC` = hgnc_symbol) |> 
+  knitr::kable()
 ```
 
 All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists. Though, the compounds have different target enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
