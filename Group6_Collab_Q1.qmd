@@ -56,22 +56,32 @@ gait_ids <- gait_data |>
 
 ## 3. Identify overlapping patients
 
+\# Count the number of unique overlapping donors
+
+n_overlapping \<- length(overlapping_donors)
+
 ```{r}
-# Identify donors appearing across all three datasets
-# containing identifiable donor IDS
+# Identify unique donor IDs present in all three datasets
+# intersect() automatically removes duplicate values
+# Reduce() applies intersect() successively across the datasets
 
-overlapping_donors <- prs_ids |> 
-  # Match population genetics donors with RNAseq donors
-  inner_join(rna_ids, by = "donorid") |> 
-  # Keep donors also appearing in clinical trial
-  inner_join(gait_ids, by = "donorid")
+overlapping_donors <- Reduce(
+  intersect,
+  list(
+    ca_co_genotypes$donorid,
+    dge$samples$donorid,
+    gait_data$donorid
+  )
+)
 
-# Display matched donor IDs
-overlapping_donors |> 
-  knitr::kable() 
+# Exclude missing donor IDs
+overlapping_donors <- overlapping_donors[!is.na(overlapping_donors)]
 
-# Count the overlapping donors
-overlapping_donors |> summarise(n = n())
+# Display shared donor IDs
+knitr::kable(overlapping_donors)
+
+# Count the number of unique overlapping donors
+length(overlapping_donors) 
 ```
 
 ## 4. Results and Interpretation
