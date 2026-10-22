@@ -363,7 +363,7 @@ comparison_data <- comparison_data |>
   )
 
 # Identify the biological targets and mechanism of actions of previously identified significant compounds from Q2
-comparison_data |>
+significant_hits <- comparison_data |>
   # Retain only compounds identified as significant in Q2
   filter(cmpd %in% significant_compounds$cmpd) |>
   # Display compound ID, target, action and HGNC symbol
@@ -371,8 +371,7 @@ comparison_data |>
     `Compound ID` = cmpd, 
     Action = action,
     `Target Gene ID` = target_enzyme, 
-    `Target HGNC` = hgnc_symbol) |> 
-  knitr::kable()
+    `Target HGNC` = hgnc_symbol) 
 ```
 
 ![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAaCAYAAADFTB7LAAAAcElEQVR4Xu3OwQmAQAxE0bClWYCW5N06tM6V2YPg5CjoF/JhLoHAi6iqn9eOefUbqrYvHY0cQDLyAlKRNyARmYA0ZMLRkAlGQyaU72tkAtlim7r/vJqDUDjlKBROOQyFU2icQuMUGqfQuBEaV1XPOwEx96nYACK8+wAAAABJRU5ErkJggg== "Run Current Chunk")
@@ -383,6 +382,6 @@ All four of the compounds that are statistically significantly associated with i
 
 ```{r}
 # Export results for collaborative analysis
-saveRDS(significant_compounds, "hit_targets.rds")
+saveRDS(significant_hits, "hit_targets.rds")
 ```
 

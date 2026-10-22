@@ -374,8 +374,6 @@ significant_hits <- comparison_data |>
     `Target HGNC` = hgnc_symbol) 
 ```
 
-![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAaCAYAAADFTB7LAAAAcElEQVR4Xu3OwQmAQAxE0bClWYCW5N06tM6V2YPg5CjoF/JhLoHAi6iqn9eOefUbqrYvHY0cQDLyAlKRNyARmYA0ZMLRkAlGQyaU72tkAtlim7r/vJqDUDjlKBROOQyFU2icQuMUGqfQuBEaV1XPOwEx96nYACK8+wAAAABJRU5ErkJggg== "Run Current Chunk")
-
 All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists. Though, the compounds have different target enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
 
 # Save results
