@@ -17,8 +17,8 @@ library(limma)
 library(pheatmap)
 library(ggrepel)
 
-load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq.Rda")
-load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq_gene_info.Rda")
+load("data/rnaseq.Rda")
+load("data/rnaseq_gene_info.Rda")
 ```
 
 ### Filter out lowly expressed genes
@@ -77,9 +77,7 @@ The `voom()` function converts counts to log-CPM values using the library sizes 
 
 The voom plot shows the mean-variance relationship: the x-axis is average log2 expression and the y-axis is the square root of the residual standard deviation.
 
-```{r}TR}
-v <- voom(dge, design, plot = UE)
-```
+`{r}TR} v <- voom(dge, design, plot = UE)`
 
 #### Fit the model and apply contrasts
 
