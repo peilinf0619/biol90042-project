@@ -257,7 +257,9 @@ clean_ANOVA
 write.csv(clean_ANOVA, file ="output/anova_table.csv")
 ```
 
-The results of this test indicate, however, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising itself does improve balance (p = 0.01), but likely not improve the effect of the drug.
+The results of this test indicate that treatment and exercise can improve gait as individual agents (both p = 0.01). However, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising likely not improve the effect of the drug.
+
+## Investigate how age affects gait
 
 Next we ask how age affects gait, using a linear regression model:
 
