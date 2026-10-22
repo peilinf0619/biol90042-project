@@ -8,6 +8,7 @@ format: html
 ## Load in data
 
 ```{r}
+install.packages("drc")
 library(tidyverse)
 library(drc)
 
