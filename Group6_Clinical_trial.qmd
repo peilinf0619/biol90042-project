@@ -113,7 +113,7 @@ summary_data
 
 In this section I plot the three summary statistics (mean, median and standard deviation) of each patient against treatment status to examine how different parameter capture the effect of treatment.
 
-The three summary statistics parameters capture the effect of treatment equally, so the mean will be used for further data investigation.
+The three summary statistics parameters capture the effect of treatment equally, so the mean will be used for further data investigation and will be referred to as "gait" onwards.
 
 ```{r}
 
@@ -175,7 +175,7 @@ summary_data %>%
   geom_point(size = 1)+
   labs(
        x = "Treatment",
-       y = "Mean of degrees off vertical orientation")+
+       y = "Gait")+
   ylim(0,18)+
   theme_classic(base_size = 16)+
   theme(text = element_text(family = "Helvetica", face = "bold"),
@@ -213,7 +213,7 @@ summary_data %>%
                         breaks = c("y", "n"),
                         labels = c("Yes", "No"))+
   labs(x = "Treatment",
-       y = "Imbalance (Mean of degrees off vertical centre)",
+       y = "Gait",
   )+
   theme(text = element_text(family = "Helvetica", face = "bold"),
         axis.line = element_line(linewidth = 1.3),
@@ -284,6 +284,7 @@ shapiro.test(resid(fit_new_compound))
   geom_point()+
   theme_classic()+
   geom_smooth(method = lm)+
+  labs(y = "Gait")+
   theme(text = element_text(family = "Helvetica", face = "bold"),
         axis.line = element_line(linewidth = 1.3),
         axis.ticks = element_line(linewidth = 1.3),
@@ -299,8 +300,15 @@ shapiro.test(resid(fit_new_compound))
       label.x = 66,
       label.y = c(17, 16)     
     )
+
+# Investigate whether age confound the difference in effect of two different drugs using an ANCOVA model
+gait_age_corrected <- lm(avg_imbalance ~ treatment + age, data = summary_data)
+
+car::Anova(gait_age_corrected, type = "II")
 ```
 
 Within each group, Shapiro's test on residiuals returns p value \>0.05, meaning residuals are normally distributed and hence linear regression model is valid.
 
-In both treatment group, balance tends to get worse as age increases, (both groups have positive slope). However linear regression indicates this association is only statistically significant in the group treated with new compound (this group also has a higher slope). Overall, gait tends to decrease as the patient age, however this effects is likely independent from treatment.
+In both treatment group, gait tends to get worse as age increases, (both groups have positive slope). However linear regression indicates this association is only statistically significant in the group treated with new compound (this group also has a higher slope). Overall, gait tends to decrease as the patient age, however this effects is likely independent from treatment.
+
+To confirm whether the different effects on gait of the two treatment is not due to the age difference of the patients between 2 groups, I constructed an ANCOVA model to examine the real drug effect when corrected for age. After correcting for age, the new treatment compound still has a positive on improving patients' gait (p = 0.01); after correcting for treatment, age indeed as a significant effect on gait ( p = 0.001), justifying the need to correct for age in this model.

@@ -60,6 +60,8 @@ nrow(prs_gait)
 
 ## Visualise the relationship
 
+Plot relationship between PRS and gait, then take into account age and exercise status.
+
 ```{r prs-gait-scatterplot}
 # Visualise the relationship between PRS and gait imbalance
 prs_gait |> 
@@ -101,7 +103,9 @@ prs_gait %>%
   theme_classic()
 ```
 
-## Normality check
+## Analysis of correlation between gait and PRS and how drug treatment and exercise status affects this relationship
+
+### Normality check of Gait and PRS
 
 ```{r prs-normality}
 # Check normality of PRS
@@ -110,6 +114,8 @@ ggplot(prs_gait,aes(sample = PRS))+
   geom_qq_line()
 
 shapiro.test(prs_gait$PRS)
+
+
 ```
 
 ```{r gait-normality}
@@ -121,55 +127,32 @@ ggplot(prs_gait,aes(sample = avg_imbalance))+
 shapiro.test(prs_gait$avg_imbalance)
 ```
 
-## Correlation between the datasets
+### Analysis of association
 
 ```{r}
 # Spearman correlation between PRS and gait imbalance
 # Spearman is used because PRS is not normally distributed
-
 cor.test(
   prs_gait$PRS,
   prs_gait$avg_imbalance,
   method = "spearman"
 )
 
+# Fit linear regression within each treatment group
+prs_fit_control  <- lm(prs_gait$avg_imbalance[treatment =="L-DOPA control"] ~ prs_gait$PRS[treatment == "L-DOPA control"], data = prs_gait)
+
+prs_fit_new_compound  <- lm(prs_gait$avg_imbalance[treatment =="New compound"] ~ prs_gait$PRS[treatment == "New compound"], data = prs_gait)
+
+summary(prs_fit_control)
+summary(prs_fit_new_compound)
+
+# Extract and perform Shapiro test on residuals of linear model in each treatment group:
+shapiro.test(resid(prs_fit_control))
+shapiro.test(resid(prs_fit_new_compound))
 
 
-```
 
-## Results and Interpretation
-
-The scatterplot showed a weak negative trend between PRS and mean absolute gait imbalance.
-
-Normality was assessed using QQ plots and Shapiro-Wilk tests. PRS was not normally distributed (W = 0.808, p = 0.00348), while gait imbalance showed no significant departure from normality (W = 0.969, p = 0.8197). Therefore, Spearman's rank correlation was used to assess the relationship between the two datasets.
-
-The analysis showed a weak negative correlation between PRS and gait imbalance (p = -0.232, p = 0.3852). However, this relationship was not statistically significant (p \> 0.05).
-
-These results suggests that there is insufficient evidence of an association between polygenic risk and gait imbalance in the clinical trial patients. However, the small sample size (n = 16) limits the statistical power of this analysis. Other factors such as treatment, exercise and age, may also influence gait performance.
-
-However the pattern is very different when patients are grouped by treatment. First I used qqplot and shapiro test to confirm that distribution of data within 2 groups are normal, then ran a linear regression in each group.
-
-Association between PRS and balance in patient group receiving L-DOPA is not statistically significant (linear regression p = 0.08), but there is a strong negative association between PRS and balance in the new treatment group (slope = -2.8, p = 0.008). This indicates PRS score is a potential predictor of response to the new compound, which is interesting because Parkinson disease patients tend to have higher PRS score than healthy people.
-
-```{r}
-# Check normality in each treatment group:
-ggplot(prs_gait,aes(sample = avg_imbalance))+
-  geom_qq() +
-  geom_qq_line()+
-  facet_wrap(~treatment)
-
-prs_gait %>% 
-  filter(treatment == "L-DOPA control") %>% 
-  pull(avg_imbalance) %>% 
-  shapiro.test()
-
-prs_gait %>% 
-  filter(treatment == "New compound") %>% 
-  pull(avg_imbalance) %>% 
-  shapiro.test()
-
-
-# Plot gait against PRS score and run Pearson 
+# Plot gait against PRS score and visualize linear regression within each group, with Pearson correlation:
 prs_gait %>% 
   ggplot(aes(PRS, avg_imbalance, colour = treatment))+
   geom_point()+
@@ -192,4 +175,17 @@ prs_gait %>%
   )+
   annotate("text", x = 0.9, y = 19, label = "Linear regression")
 
+
 ```
+
+### Results: Gait vs PRS
+
+The scatterplot showed a weak negative trend between PRS and mean absolute gait imbalance (see first scatterplot in previous section).
+
+Normality was assessed using QQ plots and Shapiro-Wilk tests. PRS was not normally distributed (W = 0.808, p = 0.00348), while gait imbalance showed no significant departure from normality (W = 0.969, p = 0.8197). Therefore, Spearman's rank correlation was used to assess the relationship between the two datasets.
+
+The analysis showed a weak negative correlation between PRS and gait imbalance (p = -0.232, p = 0.3852). However, this relationship was not statistically significant (p \> 0.05).
+
+These results suggests that there is insufficient evidence of an association between polygenic risk and gait imbalance in the clinical trial patients. However, the small sample size (n = 16) limits the statistical power of this analysis. Other factors such as treatment, exercise and age, may also influence gait performance.
+
+However the pattern is very different when patients are grouped by treatment. First I construct linear regression model within each group, then extract and run Shapiro test on residuals of each model to confirm normal distribution of residuals (both p\>0.05). From the linear model (constructed using lm() and visualized on the plot), association between PRS and balance in patient group receiving L-DOPA is not statistically significant (linear regression p = 0.08), but there is a strong negative association between PRS and balance in the new treatment group (slope = -2.8, p = 0.008). This indicates PRS score is a potential predictor of response to the new compound, which is interesting because Parkinson disease patients tend to have higher PRS score than healthy people.
