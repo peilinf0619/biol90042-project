@@ -55,6 +55,9 @@ go_deg |>
 ## Answer
 
 ```{r}
+
+# Create final summary table 
+
 drug_screen_hits |> 
   # Match HGNC symbols with genes in GO dataset
   left_join(go_deg |> 
