@@ -3,6 +3,7 @@ title: "Q2"
 format: html
 editor: visual
 ---
+
 ---
 title: "Patient Clustering Beyond Gene Expression"
 subtitle: "Population Analysis and RNA-seq"
@@ -26,8 +27,8 @@ library(limma)
 library(pheatmap)
 library(ggrepel)
 
-load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq.Rda")
-load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq_gene_info.Rda")
+load("data/rnaseq.Rda")
+load("data/rnaseq_gene_info.Rda")
 ```
 
 # 2. Filter and Normalise RNA-seq Data
@@ -47,7 +48,7 @@ dge <- normLibSizes(dge, method = "TMM")
 # 3. Load Genotype and GWAS Data
 
 ```{r}
-load("~/Documents/RNA_Seq/Tut/group6_data/prs.Rda")
+load("data/prs.Rda")
 
 ```
 
@@ -155,6 +156,7 @@ b
 Explore the relationship between polygenic risk scores and patient groups.
 
 Using PRS to stratify participants illustrates that there tends to be higher PRS in the 'case' group. However, this trend emerges when we limit our sample to the participants in the rna-seq arm of the study
+
 ```{r}
 ggplot(
   data = b,
@@ -170,7 +172,8 @@ ggplot(
   theme_minimal()
 ```
 
-The clustering becomes less discrete when all participants are pooled, though the 'case' group still appears to have a higher PRS 
+The clustering becomes less discrete when all participants are pooled, though the 'case' group still appears to have a higher PRS
+
 ```{r}
 ggplot(
   data = prs_data,
