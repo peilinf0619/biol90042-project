@@ -77,7 +77,9 @@ The `voom()` function converts counts to log-CPM values using the library sizes 
 
 The voom plot shows the mean-variance relationship: the x-axis is average log2 expression and the y-axis is the square root of the residual standard deviation.
 
-`{r}TR} v <- voom(dge, design, plot = UE)`
+```{r}
+v <- voom(dge, design, plot = TRUE)
+```
 
 #### Fit the model and apply contrasts
 
