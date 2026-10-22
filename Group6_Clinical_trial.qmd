@@ -57,7 +57,7 @@ plot_old_compound <- clean_gait_data %>%
   theme_bw()+
   theme(
         panel.grid.major.x = element_blank(),
-        plot.margin = margin(t = 20, r = 40, b = 20, l = 40),
+        plot.margin = margin(t = 20, r = 20, b = 20, l = 40),
         plot.title = element_text(hjust = 0.5, vjust = 5)
         )
 
@@ -82,7 +82,7 @@ plot_new_compound <- clean_gait_data %>%
                         name = "Exercise")+
   theme(
         panel.grid.major.x = element_blank(),
-        plot.margin = margin(t = 20, r = 40, b = 20, l = 40),
+        plot.margin = margin(t = 20, r = 40, b = 20, l = 10),
         plot.title = element_text(hjust = 0.5, vjust = 5)
   )
 
