@@ -7,22 +7,27 @@ editor: visual
 ## Q3: Are any of the gene targets of hit compounds from the drug screen, differentially expressed in RNA-seq? Which GO terms are they associated with and what might this tell you about the pathology of PD?
 
 ```{r}
+
 # Load drug screen data
 drug_screen_hits <- readRDS("hit_targets.rds")
 
 # Load RNAseq DEG analysis
 deg_results <- readRDS("RNAseq_expression_status.rds")
 
-# Remove NA values from drug_screen_hits
+# Exclude hit compounds that don't have identifiable HGNC symbol
+# as they can't be matched to RNA-seq data
 drug_screen_hits <- na.omit(drug_screen_hits)
 ```
 
 ## A) Are gene targets of hit compounds differentially expressed in RNA-seq?
 
 ```{r}
+# Identify genes present in both drug-screening and RNA-seq data
 overlapping_genes <- deg_results |>
+  # Keep RNA-seq genes matching the targets of significant hit compounds
   filter(gene %in% drug_screen_hits$hgnc_symbol) 
 
+# Check matching genes and their differential expression results 
 View(overlapping_genes)
 ```
 
