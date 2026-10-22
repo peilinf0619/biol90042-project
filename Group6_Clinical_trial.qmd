@@ -261,7 +261,7 @@ The results of this test indicate that treatment and exercise can improve gait a
 
 ## Investigate how age affects gait
 
-Next we ask how age affects gait, using a linear regression model:
+Next we ask how age affects gait:
 
 ```{r}
 
@@ -273,7 +273,7 @@ fit_new_compound <- lm(summary_data$avg_imbalance[treatment == "New compound"] ~
 summary(fit_control)
 summary(fit_new_compound)
 
-# Extract residuals from linear model and check if they are normally distributed within each group
+# Extract residuals from each linear model and check if they are normally distributed within each group
 shapiro.test(resid(fit_control))
 shapiro.test(resid(fit_new_compound))
 

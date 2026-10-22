@@ -74,7 +74,7 @@ prs_gait |>
   labs(
     title = "Relationship between PRS and gait imbalance",
     x = "Polygenic Risk Score (PRS)",
-    y = "Mean absolute gait imbalance (degrees)"
+    y = "Gait"
   ) +
   theme_classic()
 
@@ -86,7 +86,7 @@ prs_gait %>%
   labs(
     title = "Relationship between PRS and gait imbalance",
     x = "Polygenic Risk Score (PRS)",
-    y = "Mean absolute gait imbalance (degrees)"
+    y = "Gait"
   ) +
   theme_classic()
 
@@ -98,7 +98,7 @@ prs_gait %>%
   labs(
     title = "Relationship between PRS and gait imbalance",
     x = "Polygenic Risk Score (PRS)",
-    y = "Mean absolute gait imbalance (degrees)"
+    y = "Gait"
   ) +
   theme_classic()
 ```
@@ -158,6 +158,7 @@ prs_gait %>%
   geom_point()+
   theme_classic()+
   geom_smooth(method = lm)+
+  labs(y = "Gait")
   theme(text = element_text(family = "Helvetica", face = "bold"),
         axis.line = element_line(linewidth = 1.3),
         axis.ticks = element_line(linewidth = 1.3),
