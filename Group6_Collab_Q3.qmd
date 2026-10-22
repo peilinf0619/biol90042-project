@@ -52,7 +52,7 @@ go_deg |>
   knitr::kable()
 ```
 
-## Answer 
+## Answer
 
 ```{r}
 drug_screen_hits |> 
