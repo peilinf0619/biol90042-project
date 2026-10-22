@@ -72,7 +72,7 @@ drug_screen_hits |>
     `Target cont.` = description,
     `GO ID` = go_id,
     `GO Term` = desc) |> 
-  # DIsplay formatted summary table 
+  # Display formatted summary table 
   knitr::kable()
 ```
 
