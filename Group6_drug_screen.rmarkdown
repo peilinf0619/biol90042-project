@@ -4,41 +4,41 @@ format: html
 editor: visual
 ---
 
-## Look through drug screen datasets
-
-```{r}
-# Load drug screen data 
-load("~/Desktop/r_course/assessments/final_proj/drugscreen.Rda")
-
-# use anyNA() function on data to see if any values are missing
-anyNA(plate1)
-anyNA(plate_meta)
-anyNA(compound_dict)
-
-# plate1 and plate_meta don't have any NA values 
-# see how many NAs are in compound_dict
-summary(compound_dict)
-```
-
-After looking through data, I can see that the plate maps for luminescence and compounds don't contain any NA values. compound_dict has one NA value (cmpd_6618, where it's hgnc symbol is not included). This information is useful going into analyses, as I don't have to remove NAs in the plate_meta and plate1 datasets.
-
-# Question 1: Using the geom_tile() function, visualise the luminescence across the plate. Do there appear to be any spatial patterns in this data?
+# Explore drug screen datasets
 
 ## Load packages
 
 ```{r}
-# Load tidyverse and ggplot2
+# Load packages for data wrangling and visualisation 
 library(tidyverse)
 library(ggplot2)
 
 ```
 
-## Prepare plate1 dataset to use geom_tile()
+```{r}
+# Load drug screen data (plate1, plate_meta and compound_dict)
+load("data/drugscreen.Rda")
 
-plate1 contains luminescence (RLU) values, and will therefore be used to answer Q1
+# Check whether datasets contain any missing values 
+anyNA(plate1)
+anyNA(plate_meta)
+anyNA(compound_dict)
+
+# plate1 and plate_meta don't have any NA values 
+# Inspect missing values and column summaries in compound_dict
+summary(compound_dict)
+```
+
+Inspection of the supplied data indicated that the luminescence plate (`plate1`) and compound plate map (`plate_meta`) had no missing values. The compound dictionary contained a missing HGNC symbol for compound 6618.
+
+# Question 1: Using the geom_tile() function, visualise the luminescence across the plate. Are there appear to be any spatial patterns in this data?
+
+## Prepare plate1 dataset for plotting
+
+plate1 contains luminescence (RLU) values, and will therefore be used to answer Q1. It is arranged as rows and columns. To plot one tile per well using ggplot2, the plate must be in long format containing well coordinages and luminescence (in RLU)
 
 ```{r}
-# geom_tile requires plate1 to be in long format
+# Convert plate1 from wide to long format (where each row represents 1 well)
 
 plate1_long <- plate1 |> 
   pivot_longer(
@@ -63,8 +63,8 @@ plate1_long <- plate1_long |>
     # keep numbers after "col"
     plate_col = parse_number(plate_col))
 
-# Check rows and columns have numeric values 
-View(plate1_long)
+# Check that reformatitng worked in the first few rows 
+head(plate1_long)
 ```
 
 ## Visualise luminescence as heatmap
@@ -92,16 +92,16 @@ ggplot(plate1_long) +
     linewidth = 0.1
   ) +
   scale_fill_viridis_c(option = "viridis", direction = 1) +
-  # label every 2nd column number at the top to avoid over-cluttering
+  # label every 2nd column number at the top to avoid over-crowding x-acis
   scale_x_continuous(breaks = seq(1, 48, by = 2), expand = c(0, 0), position = "top") +
-  # use scale_y_reverse() to get rows to start from 1 at the top like a plate
+  # reverse y-axis so plate row 1 appears at the top
   scale_y_reverse(breaks = seq(1, 32, by = 2), expand = c(0, 0)) +
   coord_equal() +
   # add title, axes titles and legend
   labs(
     x = "Column",
     y = "Row",
-    title = "Luminescence across 1536-well plate after 24h MPP treatment",
+    title = "Luminescence across 1536-well plate after 24h MPP exposure",
     fill = "Luminescence (RLU)"
   ) +
   theme_minimal() +
@@ -116,31 +116,32 @@ ggplot(plate1_long) +
 
 ## Answer
 
-There doesn't appear to be any spatial patterns in the data. Wells with higher RLU values seem to be randomly scattered throughout the 1536-well plate.
+There did not appear to be a clear spatial pattern in the heatmap. Wells with higher and lower RLU values were distributed across the 1536-well plate, without any obvious directional gradients.
 
 # Question 2: Which compounds are statistically significantly associated with increased neuronal viability after MPP exposure? Ensure that you check your assumptions.
 
-## Incorporating plate_meta dataset
+## Match luminescence data with compound plate map
+
+The plate metadata must be reshaped using the same well coordinates as the luminescence data. Joining by both row and column ensures that each RLU measurement is matched to the correct compound and condition.
 
 ```{r}
 library(dplyr)
 
-# convert plate_meta into long format
+# Convert compound plate map into one row per well 
 cmpd_long <- plate_meta |> 
   pivot_longer(
     # collapse all columns into 1 column except plate_row 
     cols = -plate_row, 
     # all columns collapsed into 1 column named "plate_col"
     names_to = "plate_col", 
-    # all RLU values in column named "luminescence"
+    # Compound and condition label for each well 
     values_to = "cmpd"
   )
 
 # Check that pivot_longer() worked
 View(cmpd_long)
 
-# Convert plate_row and plate_col values from character to numeric so that cmpd_long 
-# can be joined to plate1_long
+# Use same numeric row/column format as plate1_long
 cmpd_long <- cmpd_long |> 
   mutate(
     # keep numbers after "row"
@@ -148,7 +149,7 @@ cmpd_long <- cmpd_long |>
     # keep numbers after "col"
     plate_col = parse_number(plate_col))
 
-# Combine plate1_long and cmpd_long using left_join
+# Join luminescence measurements to compound labels using well coordinates
 combined_data <- plate1_long |> 
   left_join(cmpd_long, 
             by = c("plate_row", "plate_col"))
@@ -157,7 +158,9 @@ combined_data <- plate1_long |>
 View(cmpd_long)
 ```
 
-## Tidying combined_data
+## Separate compound ID and condition (ctrl/test)
+
+The labels contain the compound number and whether a well belongs to the test (test) or control (ctrl) condition. Separating these components makes it possible to compare conditions within each compound.
 
 ```{r}
 # Replace cmpd column with two new columns for the cmpd number and 
@@ -174,47 +177,54 @@ combined_data <- combined_data |>
 # Check two new columns contain the cmpd number and the condition type
 View(combined_data)
 
-# Check that each compound (test/ctrl) has 4 replicates
+# Check whether each compound has 4 wells for each condition
 combined_data  |> 
   count(cmpd, cond) |> 
   filter(n != 4)
 ```
 
-## Analyse how average luminescence changes between conditions (test vs. ctrl) for each compound
+## Summarise luminescence for each compound and condition
+
+For each compound, the mean and standard deviation describe the RLU measurements within the test and control groups. The difference and percentage change quantify the direction and magnitude of test vs. control response, with higher luminescence interpreted as consistent with greater cell survival/growth.
 
 ```{r}
-summary <- combined_data |> 
+summary_data <- combined_data |> 
   group_by(cmpd, cond) |> 
   summarise(
-    mean_lum = mean(luminescence),
-    sd_lum = sd(luminescence),
-    n = n(),
+    mean_lum = mean(luminescence), # mean RLU for each compound and condition
+    sd_lum = sd(luminescence), # variation between replicate wells 
+    n = n(), # number of replicate wells 
     .groups = "drop"
     )
 # Check summary dataset created includes mean_lum and sd_lum columns
-View(summary)
+View(summary_data)
 
-comparison_data <- summary |> 
+# Put control and test means side-by-side for easier comparison
+comparison_data <- summary_data |> 
   select(cmpd, cond, mean_lum) |> 
   pivot_wider(
     names_from = cond,
     values_from = mean_lum
   ) |> 
   mutate(
-    difference = test - ctrl,
+    difference = test - ctrl, # positive = higher RLU in test wells 
     percent_change = 100 * (test - ctrl) / ctrl
   )
 
 View(comparison_data)
 ```
 
-## Assumption 1: Observations are independent of one another
+## Assumption 1: Independence of observations
+
+The t-test assumes that observations within and between the compared groups are independent. The four wells per condition are technical replicates. Although they are separate wells, they may share plate-lvel
 
 ## Assumption 2: Outcome is approximately normally distributed within each group
 
-Install and load "rstatix" package
+Normality can be explored using Q-Q plots of residuals centred within each compound-condition group, followed by Shapiro-Wilk tests for individual groups. Centring removes differences in group means before inspeciting the pooled residual distributions.
 
 ```{r}
+# Install and load "rstatix" package
+
 install.packages("rstatix")
 library(rstatix)
 ```
@@ -222,7 +232,7 @@ library(rstatix)
 Generate Q-Q plots to accept/reject normality
 
 ```{r}
-# Determine residuals for each compound and condition from the group's mean
+# Subtract each compound-condition mean to obtain within-group residuals
 residual_data <- combined_data |>
   group_by(cmpd, cond) |>
   mutate(
@@ -233,7 +243,9 @@ residual_data <- combined_data |>
 # Check that residual column was added  
 View(residual_data)
 
-# Generate Q-Q plots for control compounds and test compounds 
+# Compare residuals with a theoretical normal distribution across separate 
+# panels to allow control/test residuals to be viewed independently
+
 ggplot(residual_data, aes(sample = residual)) +
   geom_qq() +
   geom_qq_line() +
@@ -247,7 +259,7 @@ ggplot(residual_data, aes(sample = residual)) +
 ```
 
 ```{r}
-# Assess normality using Shapiro-Wilk tests
+# Run Shapiro-Wilk test within each compound-condition group 
 shapiro_results <- combined_data |>
   group_by(cmpd, cond) |>
   summarise(
@@ -255,6 +267,7 @@ shapiro_results <- combined_data |>
     .groups = "drop"
   )
 
+# Count groups with p < 0.05; summarise screening
 shapiro_results |>
   summarise(
     total_tests = n(),
@@ -263,74 +276,112 @@ shapiro_results |>
   )
 ```
 
-Normality within each group was assessed using Q-Q plots of within-group residuals and Shapiro-Wilk tests. The Q-Q plots for both control and test wells showed points lying close to the reference line, with only minor deviations in the extreme tails. Shapiro-Wilk tests were run separately for each compound and condition (384 groups); 26 (6.8%) had p \< 0.05, which is close to the \~5% expected by chance alone if all groups were normally distributed. Together, these results provide no strong evidence against normality within groups, so the normality assumption was considered reasonable and a parametric t-test was appropriate rather than a non-parametric alternative (Wilcoxon rank-sum test).
+The Q-Q plots showed that residuals were broadly consistent with normality, with some deviations in the tails. Of 384 compound-condition groups, 26 (6.8%) had Shapiro-Wilk p-values below 0.05. This is not strong evidence of widespread departures from normality, although each test uses only four observations and therefore has limited power. The pooled Q-Q plots can also conceal differences between individual groups. Together, these results provide no strong evidence against normality within groups, so the normality assumption was considered reasonable and a parametric t-test was appropriate
 
 ## Assumption 3: Equal variance
 
-To assess whether the test and control group have approximately equal population variances for each of the 192 compounds, the *summary* dataset generated earlier can ...
+The conventional Student's t-test assumes equal population variances. To investigate this, the sample variances of test and control wells were compared for each compound. The variance ratio is calculated by dividing the larger sample variance by the smaller, so a value close to 1 indicates similar observed variation.
 
 ```{r}
-
-variance_check <- summary |>
+# Compare sample variances of control and test wells for each compound
+variance_check <- summary_data |>
   select(cmpd, cond, sd_lum) |>
   pivot_wider(
     names_from = cond,
     values_from = sd_lum
   ) |>
   mutate(
-    var_ctrl = ctrl^2,
+    var_ctrl = ctrl^2, # Variance = sd^2
     var_test = test^2,
     variance_ratio = pmax(var_ctrl, var_test) /
-      pmin(var_ctrl, var_test)
+      pmin(var_ctrl, var_test) # larger variance divided by smaller 
   )
 
 View(variance_check)
 
+# Summarise distribution of variance rations across all compounds
 summary(variance_check$variance_ratio)
 ```
 
-The homogeneity of variance assumption was assessed by comparing sample variances between test and control conditions for each compound. Variance ratios ranged from 1.005 to 91.467, with a median of 2.348, indicating that the observed variances were similar for some compounds but differed substantially for others. Given the variability in these ratios and the uncertainty associated with four technical replicates per condition, equal population variances could not be confidently assumed across all compounds.
+The variance ratios ranged from 1.005 to 91.467, with a median of 2.348. Thus, some compounds had similar test and control sample variances while others differed substantially. With only four wells per condition, the estimated variances are themselves uncertain, so the equal variance assumption could not be confidently supported across all compounds.
 
-# Welch t-test
+## Welch t-test
 
-Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds. Although Q-Q plots and Shapiro–Wilk tests suggested no widespread severe departures from normality, equal variances between groups cannot be confidently assumed.
+Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds.
 
 ```{r}
+
+# Perform a Welch's t-test for each compound
+
 welch_results <- combined_data |>
+  # Group data by compound to perform a seperate t-test for each
   group_by(cmpd) |>
   t_test(
-    luminescence ~ cond,
-    var.equal = FALSE,
-    alternative = "less",
-    p.adjust.method = "none"
-  ) |> ungroup() |>
+    luminescence ~ cond, # Compare luminescence between ctrl/group conditions
+    var.equal = FALSE, # Welch's t-test allows for unequal variances
+    alternative = "less", # Test whether ctrl RLUs < test RLUs
+    p.adjust.method = "none" # Retain unadjusted p-values 
+    # Remove grouping before multiple testing correction
+  ) |> ungroup() |> 
+  # Apply BH correction across all compounds to control for 
+  # the false discovery rate from multiple testing 
   adjust_pvalue(method = "BH")
 ```
 
 ```{r}
+
+# Identify compound with statistically significant differences in luminescence 
+# following multiple-testing correction
+
 significant_compounds <- welch_results |>
+  # Filter for compounds with BH-adjusted p-values < 0.05
   filter(p.adj < 0.05) |>
+  # Arrange compounds in ascending order of adjusted p-value
   arrange(p.adj)
 ```
 
-# Question 3
-
-What are the mechanisms of action and targets of the compounds you identify in Q2?
+# Question 3: What are the mechanisms of action and targets of the compounds you identify in Q2?
 
 ```{r}
+# Join compound_dict to comparison_data to obtain information about
+# each compound's biological target and action
 
+# Load stringr package for string manipulation
 library(stringr)
 
+# Retain all rows from comparison_data and match cmpd info
 comparison_data <- comparison_data |>
   left_join(
     compound_dict |>
+      # Remove "cmpd_" prefix from compound IDs to match 
+      # the format of the cmpd column in comparison_data 
       mutate(cmpd = str_remove(id, "^cmpd_")) |>
+      # Remove original ID column as no longer needed
       select(-id),
+    # Match the two datasets using compound identifier
     by = "cmpd"
   )
 
-comparison_data |>
-  filter(cmpd %in% significant_compounds$cmpd) |> 
-  View()
+# Identify the biological targets and mechanism of actions of previously identified significant compounds from Q2
+significant_hits <- comparison_data |>
+  # Retain only compounds identified as significant in Q2
+  filter(cmpd %in% significant_compounds$cmpd) |>
+  # Display compound ID, target, action and HGNC symbol
+  select(
+    `Compound ID` = cmpd, 
+    Action = action,
+    `Target Gene ID` = target_enzyme, 
+    `Target HGNC` = hgnc_symbol) 
+```
+
+![](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAaCAYAAADFTB7LAAAAcElEQVR4Xu3OwQmAQAxE0bClWYCW5N06tM6V2YPg5CjoF/JhLoHAi6iqn9eOefUbqrYvHY0cQDLyAlKRNyARmYA0ZMLRkAlGQyaU72tkAtlim7r/vJqDUDjlKBROOQyFU2icQuMUGqfQuBEaV1XPOwEx96nYACK8+wAAAABJRU5ErkJggg== "Run Current Chunk")
+
+All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists. Though, the compounds have different target enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
+
+# Save results
+
+```{r}
+# Export results for collaborative analysis
+saveRDS(significant_hits, "hit_targets.rds")
 ```
 

@@ -15,7 +15,6 @@ library(ggplot2)
 
 ```
 
-
 ```{r}
 # Load drug screen data (plate1, plate_meta and compound_dict)
 load("data/drugscreen.Rda")
@@ -30,10 +29,9 @@ anyNA(compound_dict)
 summary(compound_dict)
 ```
 
-Inspection of the supplied data indicated that the luminescence plate (`plate1`) and compound plate map (`plate_meta`) had no missing values. The compound dictionary contained a missing HGNC symbol for compound 6618. 
+Inspection of the supplied data indicated that the luminescence plate (`plate1`) and compound plate map (`plate_meta`) had no missing values. The compound dictionary contained a missing HGNC symbol for compound 6618.
 
 # Question 1: Using the geom_tile() function, visualise the luminescence across the plate. Are there appear to be any spatial patterns in this data?
-
 
 ## Prepare plate1 dataset for plotting
 
@@ -118,7 +116,7 @@ ggplot(plate1_long) +
 
 ## Answer
 
-There did not appear to be a clear spatial pattern in the heatmap. Wells with higher and lower RLU values were distributed across the 1536-well plate, without any obvious directional gradients. 
+There did not appear to be a clear spatial pattern in the heatmap. Wells with higher and lower RLU values were distributed across the 1536-well plate, without any obvious directional gradients.
 
 # Question 2: Which compounds are statistically significantly associated with increased neuronal viability after MPP exposure? Ensure that you check your assumptions.
 
@@ -162,8 +160,7 @@ View(cmpd_long)
 
 ## Separate compound ID and condition (ctrl/test)
 
-The labels contain the compound number and whether a well belongs to the test (test)
-or control (ctrl) condition. Separating these components makes it possible to compare conditions within each compound.
+The labels contain the compound number and whether a well belongs to the test (test) or control (ctrl) condition. Separating these components makes it possible to compare conditions within each compound.
 
 ```{r}
 # Replace cmpd column with two new columns for the cmpd number and 
@@ -223,9 +220,7 @@ The t-test assumes that observations within and between the compared groups are 
 
 ## Assumption 2: Outcome is approximately normally distributed within each group
 
-Normality can be explored using Q-Q plots of residuals centred within each compound-condition group, followed by Shapiro-Wilk tests for individual groups. Centring removes differences in group means before inspeciting the pooled residual distributions. 
-
-
+Normality can be explored using Q-Q plots of residuals centred within each compound-condition group, followed by Shapiro-Wilk tests for individual groups. Centring removes differences in group means before inspeciting the pooled residual distributions.
 
 ```{r}
 # Install and load "rstatix" package
@@ -312,7 +307,7 @@ The variance ratios ranged from 1.005 to 91.467, with a median of 2.348. Thus, s
 
 ## Welch t-test
 
-Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds. 
+Following assessment of the statistical assumptions, a one-sided Welch's t-test has been selected to compare luminescence between test and control conditions for each of the 192 compounds.
 
 ```{r}
 
@@ -368,19 +363,15 @@ comparison_data <- comparison_data |>
   )
 
 # Identify the biological targets and mechanism of actions of previously identified significant compounds from Q2
-comparison_data |>
+significant_hits <- comparison_data |>
   # Retain only compounds identified as significant in Q2
   filter(cmpd %in% significant_compounds$cmpd) |>
-  # Display compound ID, taregt enzyme, action and HGNC symbol
-  select(cmpd, target_enzyme, action, hgnc_symbol)
-
-comparison_data |> 
+  # Display compound ID, target, action and HGNC symbol
   select(
-    Compound = cmpd, 
+    `Compound ID` = cmpd, 
     Action = action,
     `Target Gene ID` = target_enzyme, 
-    `Target HGNC` = hgnc_symbol) |> 
-  knitr::kable()
+    `Target HGNC` = hgnc_symbol) 
 ```
 
 All four of the compounds that are statistically significantly associated with increased neuronal viability following MPP exposure are agonists. Though, the compounds have different target enzymes. Compound 4550 targets enzyme 26002 (MOXD1), compound 4635 targets enzyme 6817 (SULT1A1), compound 6314 targets enzyme 4128 (MAOA) and compound 6618 targets enzyme 124907837 (no HGNC symbol).
@@ -389,5 +380,5 @@ All four of the compounds that are statistically significantly associated with i
 
 ```{r}
 # Export results for collaborative analysis
-saveRDS(significant_compounds, "hit_targets.rds")
+saveRDS(significant_hits, "hit_targets.rds")
 ```

@@ -12,14 +12,14 @@ editor: visual
 library(dplyr)
 
 # Load drug screen data
-drug_screen_hits <- readRDS("hit_targets.rds")
+significant_hits <- readRDS("hit_targets.rds")
 
 # Load RNAseq DEG analysis
 deg_results <- readRDS("RNAseq_expression_status.rds")
 
 # Exclude hit compounds that don't have identifiable HGNC symbol
 # as they can't be matched to RNA-seq data
-drug_screen_hits <- na.omit(drug_screen_hits)
+significant_hits <- na.omit(significant_hits)
 ```
 
 ## A) Are gene targets of hit compounds differentially expressed in RNA-seq?
@@ -28,7 +28,7 @@ drug_screen_hits <- na.omit(drug_screen_hits)
 # Identify genes present in both drug-screening and RNA-seq data
 overlapping_genes <- deg_results |>
   # Keep RNA-seq genes matching the targets of significant hit compounds
-  filter(gene %in% drug_screen_hits$hgnc_symbol) 
+  filter(gene %in% significant_hits$`Target HGNC`) 
 
 # Display matching genes and their differential expression results 
 knitr::kable(overlapping_genes)
@@ -47,7 +47,7 @@ go_deg <- readRDS("GO_terms.Rds")
 ```{r}
 # Identify GO terms associated with targets of hit compounds
 go_deg |>
-  filter(gene %in% drug_screen_hits$hgnc_symbol) |> 
+  filter(gene %in% significant_hits$`Target HGNC`) |> 
   select(go_id, desc, gene, description) |> 
   knitr::kable()
 ```
@@ -58,22 +58,12 @@ go_deg |>
 
 # Create final summary table 
 
-drug_screen_hits |> 
+significant_hits |> 
   # Match HGNC symbols with genes in GO dataset
   left_join(go_deg |> 
               select(gene, go_id, desc, description), 
-            by = c("hgnc_symbol" = "gene")
-            ) |>
-  # Select columns and rename them for clearer presentation
-  select(
-    `Compound ID` = cmpd, 
-    Action = action, 
-    Target = hgnc_symbol, 
-    `Target cont.` = description,
-    `GO ID` = go_id,
-    `GO Term` = desc) |> 
-  # Display formatted summary table 
-  knitr::kable()
+            by = c(`Target HGNC` = "gene")
+            ) |>  knitr::kable()
 ```
 
-Three significant drug-screening hits targeted **MOXD1, SULT1A1 and MAOA**, all of which were upregulated in Parkinson's disease (PD) cases in the RNA-seq analysis. GO annotation associated all three genes with the dopamine biosynthetic process, suggesting a potential relationship between these targets and pathways regulating dopamine availability. This is particularly relevant to PD pathology, which is characterised by dopaminergic neurodegeneration and impaired dopamine signalling. The upregulation of these genes may represent a compensatory response to disruptions in dopamine homeostasis, although it could also reflect disease-associated dysfunction. Interestingly, all three hit compounds were classified as agonists and were associated with increased neuronal viability following MPP exposure. However, increased gene expression does not necessarily correspond to increased protein activity, and the protective effects of these compounds may involve alternative mechanisms. This is particularly relevant for MAOA, as dopamine degradation can generate reactive oxygen species that contribute to oxidative stress. Therefore, although these findings suggest a relationship between altered dopamine regulation and neuronal survival, further investigation of protein activity and compound mechanisms is required to establish whether these pathways contribute to neuroprotection or PD pathology.
+Three significant drug-screening hits targeted MOXD1, SULT1A1 and MAOA, all of which were upregulated in Parkinson's disease (PD) cases in the RNA-seq analysis. GO annotation associated all three genes with the dopamine biosynthetic process, suggesting a potential relationship between these targets and pathways regulating dopamine availability. This is particularly relevant to PD pathology, which is characterised by dopaminergic neurodegeneration and impaired dopamine signalling. The upregulation of these genes may represent a compensatory response to disruptions in dopamine homeostasis, although it could also reflect disease-associated dysfunction. Interestingly, all three hit compounds were classified as agonists and were associated with increased neuronal viability following MPP exposure. However, increased gene expression does not necessarily correspond to increased protein activity, and the protective effects of these compounds may involve alternative mechanisms. This is particularly relevant for MAOA, as dopamine degradation can generate reactive oxygen species that contribute to oxidative stress. Therefore, although these findings suggest a relationship between altered dopamine regulation and neuronal survival, further investigation of protein activity and compound mechanisms is required to establish whether these pathways contribute to neuroprotection or PD pathology.
