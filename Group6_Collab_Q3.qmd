@@ -8,6 +8,9 @@ editor: visual
 
 ```{r}
 
+# Load dplyr package for data manipulation 
+library(dplyr)
+
 # Load drug screen data
 drug_screen_hits <- readRDS("hit_targets.rds")
 
@@ -27,23 +30,47 @@ overlapping_genes <- deg_results |>
   # Keep RNA-seq genes matching the targets of significant hit compounds
   filter(gene %in% drug_screen_hits$hgnc_symbol) 
 
-# Check matching genes and their differential expression results 
-View(overlapping_genes)
+# Display matching genes and their differential expression results 
+knitr::kable(overlapping_genes)
 ```
 
-Since the target enzyme of compound 6618 had no HGNC symbol, we are only able to look for the targets of the other three compounds (4550, 4635 and 6314). Filtering for the targets of these compounds in deg_results revealed that these target genes are up-regulated in PD.
+Of the four significant hit compounds identified in the drug screen, compound 6618 had no associated HGNC symbol, and could therefore not be matched to the RNA-seq data. The remaining three compounds (4550, 4635, and 6314) targeted MOXD1, SULT1A1 and MAOA respectively. All three genes were identified as up-regulated in PD cases relative to controls, suggesting that the targets of compounds associated with increased neuronal viability are also transcriptionally altered in PD.
 
 ## B) GO term association
 
 ```{r}
-
-# Load GO terms 
+# Load GO annotations associated with differentially
+# expressed genes 
 go_deg <- readRDS("GO_terms.Rds")
 ```
 
 ```{r}
+# Identify GO terms associated with targets of hit compounds
 go_deg |>
-  filter(gene %in% drug_screen_hits$hgnc_symbol) 
+  filter(gene %in% drug_screen_hits$hgnc_symbol) |> 
+  select(go_id, desc, gene, description) |> 
+  knitr::kable()
 ```
 
-All three gene targets are associated with GO:0042420 (dopamine biosynthetic process). All
+## Answer 
+
+```{r}
+drug_screen_hits |> 
+  # Match HGNC symbols with genes in GO dataset
+  left_join(go_deg |> 
+              select(gene, go_id, desc, description), 
+            by = c("hgnc_symbol" = "gene")
+            ) |>
+  # Select columns and rename them for clearer presentation
+  select(
+    `Compound ID` = cmpd, 
+    Action = action, 
+    Target = hgnc_symbol, 
+    `Target cont.` = description,
+    `GO ID` = go_id,
+    `GO Term` = desc) |> 
+  # DIsplay formatted summary table 
+  knitr::kable()
+```
+
+All three gene targets (MOXD1, SULT1A1 and MAOA) of statistically significant hit compounds from the drug screen were associated with GO:0042420, labelled as dopamine biosynthetic process in the supplied dataset. This highlights a potential connection between the identified drug targets and dopamine regulation. This is particularly relevant to PD pathology, which is characterised by the degeneration of dopaminergic neurons and impaired dopamine signalling. The upregulation of these genes may reflect alterations in dopamine metabolism, potentially representing a compensatory response to neuronal dysfunction or contributing to disease-associated changes. Although the three agonist-labelled compounds were associated with increased neuronal viability following MPP exposure, the mechanisms underlying these effects remain unclear. Further investigation into dopamine metabolism, target protein activity and oxidative stress may help clarify the role of these pathways in PD pathology and their potential therapeutic relevance.
