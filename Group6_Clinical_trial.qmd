@@ -262,6 +262,20 @@ The results of this test indicate, however, the effect on balance of exercise an
 Next we ask how age affects gait, using a linear regression model:
 
 ```{r}
+
+# Build linear model for each treamtment group
+fit_control <- lm(summary_data$avg_imbalance[treatment == "L-DOPA control"] ~ summary_data$age[treatment =="L-DOPA control"], data = summary_data)
+
+fit_new_compound <- lm(summary_data$avg_imbalance[treatment == "New compound"] ~ summary_data$age[treatment =="New compound"], data = summary_data)
+
+summary(fit_control)
+summary(fit_new_compound)
+
+# Extract residuals from linear model and check if they are normally distributed within each group
+shapiro.test(resid(fit_control))
+shapiro.test(resid(fit_new_compound))
+
+
 # Scatter plot to visualize relalationship between Gait and age
   summary_data %>% 
   ggplot(aes(age, avg_imbalance, colour = treatment))+
@@ -284,5 +298,7 @@ Next we ask how age affects gait, using a linear regression model:
       label.y = c(17, 16)     
     )
 ```
+
+Within each group, Shapiro's test on residiuals returns p value \>0.05, meaning residuals are normally distributed and hence linear regression model is valid.
 
 In both treatment group, balance tends to get worse as age increases, (both groups have positive slope). However linear regression indicates this association is only statistically significant in the group treated with new compound (this group also has a higher slope). Overall, gait tends to decrease as the patient age, however this effects is likely independent from treatment.
