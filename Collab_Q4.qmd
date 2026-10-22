@@ -8,12 +8,11 @@ format: html
 ## Load in data
 
 ```{r}
-install.packages("drc")
 library(tidyverse)
-library(drc)
+library(ggpubr)
 
 # Load the cleaned PRS data
-load("data/prs.Rda")
+load("data/prs_processed.Rda")
 
 # Check the structure of the cleaned PRS dataset
 glimpse(prs_data)
