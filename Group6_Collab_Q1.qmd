@@ -2,3 +2,79 @@
 title: "Group6_Collab_Q1"
 format: html
 ---
+
+```{r}
+library(tidyverse)
+
+# Load all four datasets
+load("data/prs.Rda")
+load("data/rnaseq.Rda")
+load("data/drugscreen.Rda")
+load("data/gait.Rda")
+
+# Check population genetics donor IDs
+head(ca_co_genotypes$donorid)
+
+# Check RNA-seq sample information
+head(dge$samples)
+colnames(dge$samples)
+rownames(dge$samples)
+
+# Check clinical trial donor IDs
+head(gait_data$donorid)
+
+# Check drug screening metadata
+colnames(plate_meta)
+colnames(compound_dict)
+```
+
+```{r}
+# Extract unique donor IDs
+prs_ids <- ca_co_genotypes %>%
+  distinct(donorid)
+
+gait_ids <- gait_data %>%
+  distinct(donorid)
+
+# Identify patients in both datasets
+prs_gait_overlap <- prs_ids %>%
+  inner_join(gait_ids, by = "donorid")
+
+# Count overlapping patients
+nrow(prs_gait_overlap)
+
+# Display matched donor IDs
+prs_gait_overlap
+```
+
+```{r}
+head(dge$samples)
+rownames(dge$samples)
+```
+
+```{r}
+# Extract unique donor IDs from each dataset
+prs_ids <- ca_co_genotypes %>%
+  distinct(donorid)
+
+rna_ids <- dge$samples %>%
+  distinct(donorid)
+
+gait_ids <- gait_data %>%
+  distinct(donorid)
+
+# Identify donors appearing in all three datasets
+overlapping_donors <- prs_ids %>%
+  inner_join(rna_ids, by = "donorid") %>%
+  inner_join(gait_ids, by = "donorid")
+
+# Display the overlapping donors
+overlapping_donors
+
+# Count overlapping donors
+nrow(overlapping_donors)
+```
+
+## Results and Interpretation
+
+Using the unique donor IDs, we identified 8 participants who appeared in the population genetics, RNA-seq and clinical trial datasets. However, the drug screening dataset did not provide identifiable donor IDs for matching with the other datasets. Therefore, although 8 participants were confirmed to overlap across three study arms, the number of participants appearing across all four arms could not be determined from the available donor information.
