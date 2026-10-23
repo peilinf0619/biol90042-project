@@ -242,11 +242,11 @@ summary_data %>%
 
 From the QQplot, it is relatively safe to assume that data in each group is normally distributed
 
-Next run two-way ANOVA:
+Next run two-way ANOVA, and :
 
 ```{r}
 
-
+# Explore if exercise help improve drug effect
 anova_tbl <- aov(avg_imbalance ~ treatment * exercise,
     data = summary_data)
 
@@ -254,10 +254,16 @@ clean_ANOVA <- tidy(anova_tbl)
 
 clean_ANOVA
 
-write.csv(clean_ANOVA, file ="output/anova_table.csv")
+
+# When adjust for exercise status, is the drug effect still significant?
+gait_exercise_correct <- lm(avg_imbalance ~ treatment + exercise, data = summary_data)
+
+car::Anova(gait_exercise_correct, type = "II")
 ```
 
 The results of this test indicate that treatment and exercise can improve gait as individual agents (both p = 0.01). However, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising likely not improve the effect of the drug.
+
+Also, when corrected for exercise, the new compound still has a significant impact on improving gait (Table 2 in the code chunk above)
 
 ## Investigate how age affects gait
 
