@@ -14,8 +14,8 @@ library(dplyr)
 # Load drug screen data
 significant_hits <- readRDS("hit_targets.rds")
 
-# Load RNAseq DEG analysis
-deg_results <- readRDS("RNAseq_expression_status.rds")
+# Load results of RNAseq DEG analysis
+RNAseq_exp_results <- readRDS("RNAseq_expression_status.rds")
 
 # Exclude hit compounds that don't have identifiable HGNC symbol
 # as they can't be matched to RNA-seq data
