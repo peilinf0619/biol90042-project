@@ -261,9 +261,9 @@ gait_exercise_correct <- lm(avg_imbalance ~ treatment + exercise, data = summary
 car::Anova(gait_exercise_correct, type = "II")
 ```
 
-The results of this test indicate that treatment and exercise can improve gait as individual agents (both p = 0.01). However, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising likely not improve the effect of the drug.
+The results of this test indicate that treatment and exercise can improve gait as individual agents (both p = 0.01). However, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising likely not improve the effect of the drug. P-values cited are found in the first table generated in the code chunk above.
 
-Also, when corrected for exercise, the new compound still has a significant impact on improving gait (Table 2 in the code chunk above)
+Also, when corrected for exercise, the new compound still has a significant impact on improving gait ( p = 0.01, Table 2 in the code chunk above)
 
 ## Investigate how age affects gait
 
