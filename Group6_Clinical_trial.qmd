@@ -1,10 +1,10 @@
 ---
 title: "Final project"
-format: html
-      html:
+format:
+  html:
     code-overflow: scroll
 editor: visual
-execute
+execute:
   cache: true
 ---
 

@@ -12,7 +12,7 @@ editor: visual
 # Load packages for data wrangling and visualisation 
 library(tidyverse)
 library(ggplot2)
-
+library(plotly)
 ```
 
 ```{r}
@@ -51,7 +51,7 @@ plate1_long <- plate1 |>
   )
 
 # Check that pivot_longer() worked 
-View(plate1_long)
+print(head(plate1_long))
 
 # Convert plate_row and plate_col values from character to numeric 
 # using parse_number() for 'tidier' data
