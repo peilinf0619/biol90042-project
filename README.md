@@ -29,7 +29,7 @@ Our project includes the following analyses:
 
 - `data/` - Datasets used in the analyses
 - `Group6_Population_Genetics.qmd` - Population genetics analysis
-- `Group6_RNA-Seq_TR.qmd` - RNA-seq of patient iPSC-derived neurons analysis
+- `Group6_RNA_Seq.qmd` - RNA-seq of patient iPSC-derived neurons analysis
 - `Group6_Drug_Screen.qmd` - Drug screening analysis
 - `Group6_Clinical_Trial.qmd`
 - `Group6_CollabQ_1 ~ Group6_Collab_Q5` - Collaboration questions
