@@ -34,7 +34,7 @@ clean_gait_data <- gait_data %>% pivot_longer(cols = 5:last_col(),
                            values_to = "Degrees_off_vertical_orientation" )
 
 # Then convert values in the column "Times of measurement" into numeric time.
-clean_gait_data <- clean_gait_data %>% mutate(Time_of_measurement_seconds = sub("_.*", "", Time_of_measurement_seconds))
+clean_gait_data <- clean_gait_data %>% mutate(Time_of_measurement_seconds = sub("_.*", "", Time_of_measurement_seconds))``
 
 # convert time of measurement to numeric
 clean_gait_data <- clean_gait_data %>% 
