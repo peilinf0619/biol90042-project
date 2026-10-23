@@ -26,12 +26,13 @@ significant_hits <- na.omit(significant_hits)
 
 ```{r}
 # Identify genes present in both drug-screening and RNA-seq data
-overlapping_genes <- deg_results |>
+overlapping_genes <- RNAseq_exp_results |>
   # Keep RNA-seq genes matching the targets of significant hit compounds
-  filter(gene %in% significant_hits$`Target HGNC`) 
+  filter(gene %in% significant_hits$`Target HGNC`) |> 
+  select(-logFC, -AvgExpr) 
 
-# Display matching genes and their differential expression results 
-knitr::kable(overlapping_genes)
+# Display results
+overlapping_genes
 ```
 
 Of the four significant hit compounds identified in the drug screen, compound 6618 had no associated HGNC symbol, and could therefore not be matched to the RNA-seq data. The remaining three compounds (4550, 4635, and 6314) targeted MOXD1, SULT1A1 and MAOA respectively. All three genes were identified as up-regulated in PD cases relative to controls, suggesting that the targets of compounds associated with increased neuronal viability are also transcriptionally altered in PD.
