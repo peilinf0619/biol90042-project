@@ -252,3 +252,9 @@ legend(
   legend = levels(dge$samples$group)
 )
 ```
+
+### Save results for collaborative analysis
+
+```{r}
+saveRDS(ma_plot_data_fct, "RNAseq_expression_status.rds")
+```
