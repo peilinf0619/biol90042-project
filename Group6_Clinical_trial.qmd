@@ -111,9 +111,9 @@ summary_data
 
 ## Plot each summary statistics of patients against treatment
 
-In this section I plot the three summary statistics (mean, median and standard deviation) of each patient against treatment status to examine how different parameter capture the effect of treatment.
+In this section I plot the three summary statistics (mean, median and standard deviation of all 700 records of degrees off vertical orientation over 700 seconds) of each patient against treatment status to examine how different parameter capture the effect of treatment.
 
-The three summary statistics parameters capture the effect of treatment equally, so the mean will be used for further data investigation and will be referred to as "gait" onwards.
+The three summary statistics parameters capture the effect of treatment equally, so the mean will be used for further data investigation and will be referred to as "Mean degrees off balance" onwards.
 
 ```{r}
 
@@ -175,7 +175,7 @@ summary_data %>%
   geom_point(size = 1)+
   labs(
        x = "Treatment",
-       y = "Gait")+
+       y = "Mean degrees off balance")+
   ylim(0,18)+
   theme_classic(base_size = 16)+
   theme(text = element_text(family = "Helvetica", face = "bold"),
@@ -213,7 +213,7 @@ summary_data %>%
                         breaks = c("y", "n"),
                         labels = c("Yes", "No"))+
   labs(x = "Treatment",
-       y = "Gait",
+       y = "Mean degrees off balance",
   )+
   theme(text = element_text(family = "Helvetica", face = "bold"),
         axis.line = element_line(linewidth = 1.3),
@@ -261,13 +261,13 @@ gait_exercise_correct <- lm(avg_imbalance ~ treatment + exercise, data = summary
 car::Anova(gait_exercise_correct, type = "II")
 ```
 
-The results of this test indicate that treatment and exercise can improve gait as individual agents (both p = 0.01). However, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising likely not improve the effect of the drug. P-values cited are found in the first table generated in the code chunk above.
+The results of this test indicate that treatment and exercise can improve balance as individual agents (both p = 0.01). However, the effect on balance of exercise and treatment are likely independent of each other (p = 0.36). In other words, exercising likely not improve the effect of the drug. P-values cited are found in the first table generated in the code chunk above.
 
-Also, when corrected for exercise, the new compound still has a significant impact on improving gait ( p = 0.01, Table 2 in the code chunk above)
+Also, when corrected for exercise, the new compound still has a significant impact on improving balance ( p = 0.01, Table 2 in the code chunk above)
 
-## Investigate how age affects gait
+## Investigate how age affects balance
 
-Next we ask how age affects gait:
+Next we ask how age affects balance:
 
 ```{r}
 
@@ -284,13 +284,13 @@ shapiro.test(resid(fit_control))
 shapiro.test(resid(fit_new_compound))
 
 
-# Scatter plot to visualize relalationship between Gait and age
+# Scatter plot to visualize relalationship between balance and age
   summary_data %>% 
   ggplot(aes(age, avg_imbalance, colour = treatment))+
   geom_point()+
   theme_classic()+
   geom_smooth(method = lm)+
-  labs(y = "Gait")+
+  labs(y = "Mean degrees off balance")+
   theme(text = element_text(family = "Helvetica", face = "bold"),
         axis.line = element_line(linewidth = 1.3),
         axis.ticks = element_line(linewidth = 1.3),
@@ -315,6 +315,6 @@ car::Anova(gait_age_corrected, type = "II")
 
 Within each group, Shapiro's test on residiuals returns p value \>0.05, meaning residuals are normally distributed and hence linear regression model is valid.
 
-In both treatment group, gait tends to get worse as age increases, (both groups have positive slope). However linear regression indicates this association is only statistically significant in the group treated with new compound (this group also has a higher slope). Overall, gait tends to decrease as the patient age, however this effects is likely independent from treatment.
+In both treatment group, balance tends to get worse as age increases, (both groups have positive slope). However linear regression indicates this association is only statistically significant in the group treated with new compound (this group also has a higher slope). Overall, balance tends to decrease as the patient age, however this effects is likely independent from treatment.
 
-To confirm whether the different effects on gait of the two treatment is not due to the age difference of the patients between 2 groups, I constructed an ANCOVA model to examine the real drug effect when corrected for age. After correcting for age, the new treatment compound still has a positive on improving patients' gait (p = 0.01); after correcting for treatment, age indeed as a significant effect on gait ( p = 0.001), justifying the need to correct for age in this model.
+To confirm whether the different effects on balance of the two treatment is not due to the age difference of the patients between 2 groups, I constructed an ANCOVA model to examine the real drug effect when corrected for age. After correcting for age, the new treatment compound still has a positive on improving patients' balance (p = 0.01); after correcting for treatment, age indeed as a significant effect on balance ( p = 0.001), justifying the need to correct for age in this model.
