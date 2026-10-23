@@ -17,8 +17,8 @@ library(limma)
 library(pheatmap)
 library(ggrepel)
 
-load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq.Rda")
-load("~/Documents/RNA_Seq/Tut/group6_data/rnaseq_gene_info.Rda")
+load("data/rnaseq.Rda")
+load("data/rnaseq_gene_info.Rda")
 ```
 
 ### Filter out lowly expressed genes
